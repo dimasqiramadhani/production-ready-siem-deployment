@@ -1,0 +1,29 @@
+{
+  "policy": {
+    "description": "Wazuh alerts lifecycle: rollover then delete",
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "rollover": {
+              "min_index_age": "1d",
+              "min_primary_shard_size": "40gb"
+            }
+          }
+        ],
+        "transitions": [
+          { "state_name": "delete", "conditions": { "min_index_age": "90d" } }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [ { "delete": {} } ]
+      }
+    ],
+    "ism_template": [
+      { "index_patterns": ["wazuh-alerts-*"], "priority": 100 }
+    ]
+  }
+}

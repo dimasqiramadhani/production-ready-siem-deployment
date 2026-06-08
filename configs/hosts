@@ -1,0 +1,21 @@
+127.0.0.1   localhost
+
+# Wazuh indexer cluster
+10.10.10.11 wazuh-indexer-01.lab.local wazuh-indexer-01
+10.10.10.12 wazuh-indexer-02.lab.local wazuh-indexer-02
+10.10.10.13 wazuh-indexer-03.lab.local wazuh-indexer-03
+
+# Wazuh server cluster
+10.10.10.21 wazuh-master-01.lab.local wazuh-master-01
+10.10.10.22 wazuh-worker-01.lab.local wazuh-worker-01
+10.10.10.23 wazuh-worker-02.lab.local wazuh-worker-02
+
+# Dashboard and load balancer
+10.10.10.31 wazuh-dashboard.lab.local wazuh-dashboard-01
+10.10.10.40 wazuh-lb.lab.local wazuh-lb-01
+
+# Agents
+10.10.10.101 win-agent-01.lab.local win-agent-01
+10.10.10.102 win-agent-02.lab.local win-agent-02
+10.10.10.111 ubuntu-agent-01.lab.local ubuntu-agent-01
+10.10.10.112 ubuntu-agent-02.lab.local ubuntu-agent-02

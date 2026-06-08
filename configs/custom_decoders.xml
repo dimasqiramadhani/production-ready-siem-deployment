@@ -1,0 +1,9 @@
+<decoder name="lab-app">
+  <prematch>^labapp: </prematch>
+</decoder>
+
+<decoder name="lab-app-fields">
+  <parent>lab-app</parent>
+  <regex>user=(\S+) action=(\S+) result=(\S+)</regex>
+  <order>user, action, result</order>
+</decoder>

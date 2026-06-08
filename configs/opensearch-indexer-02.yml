@@ -1,0 +1,38 @@
+network.host: "10.10.10.12"
+node.name: "wazuh-indexer-02"
+cluster.name: "wazuh-cluster"
+node.max_local_storage_nodes: "3"
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+path.repo: /mnt/wazuh-snapshots
+
+discovery.seed_hosts:
+  - "10.10.10.11"
+  - "10.10.10.12"
+  - "10.10.10.13"
+
+cluster.initial_master_nodes:
+  - "wazuh-indexer-01"
+  - "wazuh-indexer-02"
+  - "wazuh-indexer-03"
+
+plugins.security.nodes_dn:
+  - "CN=wazuh-indexer-01,OU=Wazuh,O=Wazuh,L=California,C=US"
+  - "CN=wazuh-indexer-02,OU=Wazuh,O=Wazuh,L=California,C=US"
+  - "CN=wazuh-indexer-03,OU=Wazuh,O=Wazuh,L=California,C=US"
+
+plugins.security.authcz.admin_dn:
+  - "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+
+plugins.security.ssl.http.pemcert_filepath: /etc/wazuh-indexer/certs/wazuh-indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /etc/wazuh-indexer/certs/wazuh-indexer-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.transport.pemcert_filepath: /etc/wazuh-indexer/certs/wazuh-indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /etc/wazuh-indexer/certs/wazuh-indexer-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: /etc/wazuh-indexer/certs/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+plugins.security.restapi.roles_enabled:
+  - "all_access"
+  - "security_rest_api_access"

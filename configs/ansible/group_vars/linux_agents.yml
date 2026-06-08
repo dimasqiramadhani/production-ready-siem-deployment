@@ -1,0 +1,5 @@
+wazuh_manager: "wazuh-lb.lab.local"
+wazuh_registration_server: "wazuh-lb.lab.local"
+wazuh_agent_group: "linux"
+wazuh_registration_password: "ChangeMeEnrollPass"
+wazuh_agent_version: "4.14.0-1"

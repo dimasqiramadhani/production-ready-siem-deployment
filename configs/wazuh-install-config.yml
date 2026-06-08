@@ -1,0 +1,22 @@
+# config.yml for wazuh-certs-tool.sh -A
+nodes:
+  indexer:
+    - name: wazuh-indexer-01
+      ip: 10.10.10.11
+    - name: wazuh-indexer-02
+      ip: 10.10.10.12
+    - name: wazuh-indexer-03
+      ip: 10.10.10.13
+  server:
+    - name: wazuh-master-01
+      ip: 10.10.10.21
+      node_type: master
+    - name: wazuh-worker-01
+      ip: 10.10.10.22
+      node_type: worker
+    - name: wazuh-worker-02
+      ip: 10.10.10.23
+      node_type: worker
+  dashboard:
+    - name: wazuh-dashboard
+      ip: 10.10.10.31

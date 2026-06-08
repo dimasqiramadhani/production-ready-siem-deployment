@@ -1,0 +1,16 @@
+server.host: 0.0.0.0
+server.port: 443
+opensearch.hosts:
+  - "https://10.10.10.11:9200"
+  - "https://10.10.10.12:9200"
+  - "https://10.10.10.13:9200"
+opensearch.ssl.verificationMode: certificate
+opensearch.username: kibanaserver
+opensearch.password: kibanaserver
+opensearch.requestHeadersAllowlist: ["securitytenant","Authorization"]
+opensearch_security.multitenancy.enabled: false
+opensearch.ssl.certificateAuthorities: ["/etc/wazuh-dashboard/certs/root-ca.pem"]
+server.ssl.enabled: true
+server.ssl.key: "/etc/wazuh-dashboard/certs/wazuh-dashboard-key.pem"
+server.ssl.certificate: "/etc/wazuh-dashboard/certs/wazuh-dashboard.pem"
+uiSettings.overrides.defaultRoute: /app/wz-home

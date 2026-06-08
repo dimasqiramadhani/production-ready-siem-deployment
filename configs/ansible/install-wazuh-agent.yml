@@ -1,0 +1,58 @@
+---
+- name: Deploy Wazuh agent to Ubuntu endpoints
+  hosts: linux_agents
+  become: true
+  tasks:
+
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - gnupg
+          - apt-transport-https
+          - lsb-release
+        state: present
+        update_cache: true
+
+    - name: Add Wazuh GPG key
+      ansible.builtin.shell: |
+        curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH |         gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import
+        chmod 644 /usr/share/keyrings/wazuh.gpg
+      args:
+        creates: /usr/share/keyrings/wazuh.gpg
+
+    - name: Add Wazuh repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+        filename: wazuh
+        state: present
+
+    - name: Install wazuh-agent with enrollment variables
+      ansible.builtin.apt:
+        name: "wazuh-agent={{ wazuh_agent_version }}"
+        state: present
+        update_cache: true
+      environment:
+        WAZUH_MANAGER: "{{ wazuh_manager }}"
+        WAZUH_REGISTRATION_SERVER: "{{ wazuh_registration_server }}"
+        WAZUH_AGENT_GROUP: "{{ wazuh_agent_group }}"
+        WAZUH_REGISTRATION_PASSWORD: "{{ wazuh_registration_password }}"
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and start wazuh-agent
+      ansible.builtin.systemd:
+        name: wazuh-agent
+        enabled: true
+        state: started
+
+    - name: Validate service is active
+      ansible.builtin.command: systemctl is-active wazuh-agent
+      register: agent_status
+      changed_when: false
+
+    - name: Show service status
+      ansible.builtin.debug:
+        msg: "wazuh-agent on {{ inventory_hostname }} is {{ agent_status.stdout }}"

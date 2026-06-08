@@ -1,0 +1,11 @@
+{
+  "index_patterns": ["wazuh-archives-*"],
+  "priority": 100,
+  "template": {
+    "settings": {
+      "number_of_shards": 3,
+      "number_of_replicas": 1,
+      "refresh_interval": "30s"
+    }
+  }
+}
