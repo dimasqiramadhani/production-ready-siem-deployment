@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Quick end to end validation for the Wazuh multi node lab.
-# Usage: INDEXER=10.10.10.11 PASS=yourpass ./validate-cluster.sh
+# Usage: INDEXER=192.168.90.111 PASS=yourpass ./validate-cluster.sh
 set -u
-INDEXER="${INDEXER:-10.10.10.11}"
+INDEXER="${INDEXER:-192.168.90.111}"
 PASS="${PASS:-admin}"
 USER="${USER_IDX:-admin}"
 
@@ -24,6 +24,15 @@ curl -sk -u "$USER:$PASS" "https://$INDEXER:9200/_cat/allocation?v"
 echo "== Server cluster (run on master) =="
 echo "  sudo /var/ossec/bin/cluster_control -l"
 echo "  sudo /var/ossec/bin/cluster_control -a"
+
+echo "== Wazuh API health (run on master, must return a token) =="
+MASTER="${MASTER:-192.168.90.115}"
+echo "  Testing API authenticate on $MASTER:55000 ..."
+curl -sk -u wazuh-wui:wazuh-wui -X POST \
+  "https://$MASTER:55000/security/user/authenticate" \
+  | grep -q '"token"' \
+  && echo "  API OK: token returned" \
+  || echo "  API FAIL: no token returned from $MASTER:55000"
 
 echo "== Agents and groups (run on master) =="
 echo "  sudo /var/ossec/bin/agent_control -l"

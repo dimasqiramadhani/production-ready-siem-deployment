@@ -1,12 +1,12 @@
 # 14. Ubuntu Linux Agent Mass Deployment with Ansible
 
-Two Ubuntu endpoints: ubuntu-agent-01 (10.10.10.111), ubuntu-agent-02
-(10.10.10.112). Deployed with Ansible, all enrollment variables pointing at the load
+Two Ubuntu endpoints: ubuntu-agent-01 (192.168.90.119), ubuntu-agent-02
+(192.168.90.120). Deployed with Ansible, all enrollment variables pointing at the load
 balancer.
 
 Deployment variables:
-- `WAZUH_MANAGER=wazuh-lb.lab.local`
-- `WAZUH_REGISTRATION_SERVER=wazuh-lb.lab.local`
+- `WAZUH_MANAGER=192.168.90.112` (LB IP)
+- `WAZUH_REGISTRATION_SERVER=192.168.90.112` (LB IP)
 - `WAZUH_AGENT_GROUP=linux`
 - `WAZUH_REGISTRATION_PASSWORD=<password>` (only if enrollment password enabled)
 
@@ -18,11 +18,11 @@ All four files below are also in `configs/ansible/`.
 
 ```ini
 [linux_agents]
-ubuntu-agent-01 ansible_host=10.10.10.111
-ubuntu-agent-02 ansible_host=10.10.10.112
+ubuntu-agent-01 ansible_host=192.168.90.119
+ubuntu-agent-02 ansible_host=192.168.90.120
 
 [linux_agents:vars]
-ansible_user=ubuntu
+ansible_user=root
 ansible_become=true
 ```
 
@@ -43,11 +43,11 @@ become_method = sudo
 ## 14.3 group_vars/linux_agents.yml
 
 ```yaml
-wazuh_manager: "wazuh-lb.lab.local"
-wazuh_registration_server: "wazuh-lb.lab.local"
+wazuh_manager: "192.168.90.112"
+wazuh_registration_server: "192.168.90.112"
 wazuh_agent_group: "linux"
-wazuh_registration_password: "ChangeMeEnrollPass"
-wazuh_agent_version: "4.14.0-1"
+wazuh_registration_password: "WazuhEnroll2024!"
+wazuh_agent_version: "4.14.5-1"
 ```
 
 ## 14.4 install-wazuh-agent.yml
@@ -131,8 +131,8 @@ Run on each Ubuntu endpoint:
 ```bash
 systemctl status wazuh-agent
 tail -f /var/ossec/logs/ossec.log
-nc -vz wazuh-lb.lab.local 1514
-nc -vz wazuh-lb.lab.local 1515
+nc -vz 192.168.90.112 1514
+nc -vz 192.168.90.112 1515
 ```
 
 Healthy result: service active (running), ossec.log shows successful enrollment via

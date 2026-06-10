@@ -50,7 +50,7 @@ agent was missed, assign it by ID:
 ```bash
 /var/ossec/bin/agent_groups -l -g windows
 # or via the API
-curl -k -u wazuh-wui:<PASSWORD> "https://10.10.10.21:55000/agents?group=windows&pretty" \
+curl -k -u wazuh-wui:<PASSWORD> "https://192.168.90.115:55000/agents?group=windows&pretty" \
   -H "Authorization: Bearer <TOKEN>"
 ```
 

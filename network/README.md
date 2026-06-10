@@ -83,11 +83,11 @@ If you prefer raw iptables instead of UFW on the indexers:
 # Allow established
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 # Indexer HTTP API (restrict to server cluster + dashboard + other indexers)
-iptables -A INPUT -p tcp --dport 9200 -s 10.10.10.0/24 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9200 -s 192.168.90.0/24 -j ACCEPT
 # Indexer transport between indexer nodes only
-iptables -A INPUT -p tcp --dport 9300:9400 -s 10.10.10.11 -j ACCEPT
-iptables -A INPUT -p tcp --dport 9300:9400 -s 10.10.10.12 -j ACCEPT
-iptables -A INPUT -p tcp --dport 9300:9400 -s 10.10.10.13 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9300:9400 -s 192.168.90.111 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9300:9400 -s 192.168.90.113 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9300:9400 -s 192.168.90.114 -j ACCEPT
 # SSH
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 # Loopback
@@ -97,4 +97,4 @@ iptables -P INPUT DROP
 ```
 
 Tighten the source addresses to the actual subnet in production. In this lab all
-nodes share `10.10.10.0/24`.
+nodes share `192.168.90.0/24`.

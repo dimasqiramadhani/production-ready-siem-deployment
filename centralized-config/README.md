@@ -118,16 +118,7 @@ You can also confirm group sync status from the manager:
 /var/ossec/bin/agent_groups -l -g windows
 ```
 
-## 11.6 Troubleshooting: config not syncing
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| Agent in group but old config | keepalive not received | Confirm agent connected (1514 via LB), wait one keepalive, or restart manager |
-| agent.conf rejected | XML syntax error | Run `verify-agent-conf`, fix the reported line |
-| Worker has stale group config | edited on worker not master | Edit only on master; check `cluster.log` for sync |
-| Sysmon channel empty | Sysmon not installed | Install Sysmon on the endpoint or remove that localfile |
-
-## 11.7 Notes
+## 11.6 Notes
 
 - `agent.conf` controls what the agent collects and runs. Rules and decoders stay on
   the manager.

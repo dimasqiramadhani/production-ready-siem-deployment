@@ -1,6 +1,6 @@
 # 9. Load Balancer Deployment
 
-Node: wazuh-lb-01 (10.10.10.40), FQDN wazuh-lb.lab.local. HAProxy is the primary
+Node: wazuh-lb-01 (192.168.90.112), FQDN wazuh-lb.lab.local. HAProxy is the primary
 choice; NGINX stream is the alternative. Reference:
 https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/load-balancers.html
 
@@ -47,7 +47,7 @@ frontend wazuh_enrollment
 
 backend wazuh_enrollment_backend
     mode tcp
-    server wazuh-master-01 10.10.10.21:1515 check
+    server wazuh-master-01 192.168.90.115:1515 check
 
 # Agent reporting -> workers, round robin with health checks
 frontend wazuh_reporting
@@ -57,8 +57,8 @@ frontend wazuh_reporting
 backend wazuh_reporting_backend
     mode tcp
     balance roundrobin
-    server wazuh-worker-01 10.10.10.22:1514 check
-    server wazuh-worker-02 10.10.10.23:1514 check
+    server wazuh-worker-01 192.168.90.116:1514 check
+    server wazuh-worker-02 192.168.90.117:1514 check
 
 # Optional HAProxy stats UI
 frontend stats
@@ -75,6 +75,13 @@ Validate config and restart:
 sudo haproxy -c -f /etc/haproxy/haproxy.cfg
 sudo systemctl enable haproxy
 sudo systemctl restart haproxy
+```
+
+If you want to reach the stats page on 8404 from other hosts, open it in the
+firewall (the Stage 0 baseline only opened 1514, 1515, and 22 on the LB):
+
+```bash
+sudo ufw allow 8404/tcp comment 'haproxy stats'
 ```
 
 ## 9.4 Validate listening ports
@@ -112,7 +119,7 @@ Install `nginx` with stream support, then:
 stream {
     # Enrollment -> master
     upstream wazuh_enrollment {
-        server 10.10.10.21:1515;
+        server 192.168.90.115:1515;
     }
     server {
         listen 1515;
@@ -122,8 +129,8 @@ stream {
     # Reporting -> workers, consistent hash on client IP for sticky distribution
     upstream wazuh_reporting {
         hash $remote_addr consistent;
-        server 10.10.10.22:1514;
-        server 10.10.10.23:1514;
+        server 192.168.90.116:1514;
+        server 192.168.90.117:1514;
     }
     server {
         listen 1514;

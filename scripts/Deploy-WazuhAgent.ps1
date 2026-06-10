@@ -1,5 +1,5 @@
 $targets = @("win-agent-01.lab.local", "win-agent-02.lab.local")
-$msiSource = "\fileserver\software\wazuh\wazuh-agent.msi"
+$msiSource = "\windows-ad-dc\software\wazuh\wazuh-agent.msi"
 $cred = Get-Credential   # domain admin
 
 Invoke-Command -ComputerName $targets -Credential $cred -ScriptBlock {
@@ -16,10 +16,10 @@ Invoke-Command -ComputerName $targets -Credential $cred -ScriptBlock {
 
         $args = @(
             "/i", $local, "/q",
-            "WAZUH_MANAGER=wazuh-lb.lab.local",
-            "WAZUH_REGISTRATION_SERVER=wazuh-lb.lab.local",
+            "WAZUH_MANAGER=192.168.90.112",
+            "WAZUH_REGISTRATION_SERVER=192.168.90.112",
             "WAZUH_AGENT_GROUP=windows",
-            "WAZUH_REGISTRATION_PASSWORD=ChangeMeEnrollPass"
+            "WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!"
         )
         $p = Start-Process msiexec.exe -ArgumentList $args -Wait -PassThru
         "$(Get-Date) msiexec exit $($p.ExitCode)" | Out-File -Append $log

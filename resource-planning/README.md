@@ -1,12 +1,52 @@
 # 2. Resource Planning
 
-Two profiles are provided. The minimum lab profile fits on a single workstation or
-small server. The production like profile is realistic for enterprise simulation.
+Two reference profiles are provided below (minimum lab and production like). The
+actual lab is deployed on a third, tighter profile documented first.
+
+## 2.0 Actual deployed profile (this lab)
+
+All 8 server side nodes run Ubuntu 22.04 with 2 GB RAM and 128 GB disk each, due to
+resource limits.
+
+| VM | IP | vCPU | RAM | Disk |
+|----|-----|------|-----|------|
+| wazuh-indexer-01 | 192.168.90.111 | shared | 2 GB | 128 GB |
+| wazuh-indexer-02 | 192.168.90.113 | shared | 2 GB | 128 GB |
+| wazuh-indexer-03 | 192.168.90.114 | shared | 2 GB | 128 GB |
+| wazuh-master-01 | 192.168.90.115 | shared | 2 GB | 128 GB |
+| wazuh-worker-01 | 192.168.90.116 | shared | 2 GB | 128 GB |
+| wazuh-worker-02 | 192.168.90.117 | shared | 2 GB | 128 GB |
+| wazuh-dashboard-01 | 192.168.90.118 | shared | 2 GB | 128 GB |
+| wazuh-lb-01 | 192.168.90.112 | shared | 2 GB | 128 GB |
+
+### Constraint warning: 2 GB RAM is below the Wazuh recommended minimum
+
+The Wazuh documentation recommends 4 GB minimum for an indexer node. Running indexer
+and worker nodes at 2 GB will boot and is fine for a low volume proof of concept, but
+expect memory pressure once ingestion rises or during search. Mandatory mitigations
+already applied in Stage 0:
+
+- **Swap**: 4 GB swapfile on every node, with `vm.swappiness=10` so swap is used only
+  under pressure. This is a safety net against the out of memory killer terminating
+  the indexer or manager, not a substitute for RAM.
+- **JVM heap**: set the indexer heap explicitly to about half of RAM and equal min and
+  max. For 2 GB nodes use 1 GB heap. Edit `/etc/wazuh-indexer/jvm.options`:
+  ```
+  -Xms1g
+  -Xmx1g
+  ```
+  Do the same caution for the Wazuh server JVM if you tune it; leave headroom for the
+  OS and filesystem cache.
+- **vm.max_map_count=262144** on indexer nodes (required for OpenSearch to start).
+
+If you can raise RAM later, prioritize the three indexer nodes first (to 4 GB), then
+the two workers. The dashboard and load balancer tolerate 2 GB more comfortably.
 
 ## 2.1 Profile A: Minimum lab version
 
 Suitable for a laptop or resource constrained host. The whole lab fits in roughly
 32 GB RAM if you are careful, but 48 to 64 GB is comfortable.
+
 
 | VM | vCPU | RAM | Disk | Notes |
 |----|------|-----|------|-------|

@@ -95,7 +95,7 @@ restarts) it calls the Wazuh server API on 55000. Both connections use TLS.
                                          v
                               +---------------------+
                               |    wazuh-lb-01      |
-                              |   10.10.10.40       |
+                              |   192.168.90.112       |
                               |   HAProxy (TCP)     |
                               +----------+----------+
                                          |
@@ -105,7 +105,7 @@ restarts) it calls the Wazuh server API on 55000. Both connections use TLS.
             v                            v                            v
    +------------------+        +------------------+        +------------------+
    | wazuh-master-01  |        | wazuh-worker-01  |        | wazuh-worker-02  |
-   |   10.10.10.21    |<------>|   10.10.10.22    |<------>|   10.10.10.23    |
+   |   192.168.90.115    |<------>|   192.168.90.116    |<------>|   192.168.90.117    |
    |  master node     | 1516   |  worker node     | 1516   |  worker node     |
    +--------+---------+        +--------+---------+        +--------+---------+
             |                           |                           |
@@ -115,7 +115,7 @@ restarts) it calls the Wazuh server API on 55000. Both connections use TLS.
                                         v
    +------------------+   9300-9400  +------------------+   9300-9400  +------------------+
    | wazuh-indexer-01 |<------------>| wazuh-indexer-02 |<------------>| wazuh-indexer-03 |
-   |   10.10.10.11    |   transport  |   10.10.10.12    |   transport  |   10.10.10.13    |
+   |   192.168.90.111    |   transport  |   192.168.90.113    |   transport  |   192.168.90.114    |
    +--------+---------+              +--------+---------+              +--------+---------+
             ^                                 ^                                 ^
             |                                 |                                 |
@@ -124,7 +124,7 @@ restarts) it calls the Wazuh server API on 55000. Both connections use TLS.
                                         |
                               +---------+-----------+
                               | wazuh-dashboard-01  |
-                              |   10.10.10.31       |
+                              |   192.168.90.118       |
                               |  9200 -> indexer    |
                               |  55000 -> server API|
                               +---------+-----------+

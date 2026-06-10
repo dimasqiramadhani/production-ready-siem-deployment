@@ -1,17 +1,17 @@
 @echo off
 setlocal
 set LOGFILE=C:\Windows\Temp\wazuh-agent-install.log
-set MSI=\fileserver\software\wazuh\wazuh-agent.msi
-set WAZUH_MANAGER=wazuh-lb.lab.local
-set WAZUH_REGISTRATION_SERVER=wazuh-lb.lab.local
+set MSI=\\windows-ad-dc\Software\Wazuh\wazuh-agent.msi
+set WAZUH_MANAGER=192.168.90.112
+set WAZUH_REGISTRATION_SERVER=192.168.90.112
 set WAZUH_AGENT_GROUP=windows
-set WAZUH_REGISTRATION_PASSWORD=ChangeMeEnrollPass
+set WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!
 
-echo [%DATE% %TIME%] Starting Wazuh agent deployment check >> "%LOGFILE%"
+echo [%DATE% %TIME%] Starting Wazuh agent deployment >> "%LOGFILE%"
 
 sc query WazuhSvc >nul 2>&1
 if %ERRORLEVEL%==0 (
-    echo [%DATE% %TIME%] WazuhSvc already present, skipping install >> "%LOGFILE%"
+    echo [%DATE% %TIME%] WazuhSvc already present, skipping >> "%LOGFILE%"
     goto :ensure_running
 )
 

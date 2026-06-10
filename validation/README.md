@@ -1,4 +1,4 @@
-# 16. Validation, Troubleshooting, Hardening, and Success Criteria
+# 16. Validation, Hardening, and Success Criteria
 
 ## 16.1 End to end validation
 
@@ -6,8 +6,8 @@ Run top to bottom. Each layer must pass before trusting the next.
 
 ### Indexer cluster
 ```bash
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cluster/health?pretty"   # green, 3 nodes
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/nodes?v"             # 3 nodes, one manager
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cluster/health?pretty"   # green, 3 nodes
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/nodes?v"             # 3 nodes, one manager
 ```
 
 ### Server cluster
@@ -15,6 +15,16 @@ curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/nodes?v"             
 sudo /var/ossec/bin/cluster_control -l   # master + 2 workers
 sudo /var/ossec/bin/cluster_control -a   # agents spread across workers
 ```
+
+### Wazuh API
+```bash
+# Must return a token. Run on the master.
+curl -sk -u wazuh-wui:wazuh-wui \
+  -X POST https://192.168.90.115:55000/security/user/authenticate | python3 -m json.tool | head -3
+```
+A token confirms the dashboard can reach the manager API on 55000. On the Server APIs
+page the Updates status column should be clear (the update check is disabled on the
+master per 07-server-cluster 7.4b).
 
 ### Filebeat to indexer
 ```bash
@@ -41,20 +51,34 @@ sudo /var/ossec/bin/agent_groups -l -g linux     # 2 linux agents
 ```
 
 ### Event ingestion
-- Generate a failed SSH login on ubuntu-agent-01 and a failed logon on win-agent-01.
-- Confirm alerts 100200 / 100100 appear in Discover within seconds.
+Generate a failed SSH login on ubuntu-agent-01:
 
-## 16.2 Common cross layer troubleshooting
+```bash
+# On ubuntu-agent-01 (192.168.90.119)
+for i in {1..6}; do
+  sshpass -p "wrongpassword" ssh -o StrictHostKeyChecking=no \
+    -o ConnectTimeout=3 invaliduser@127.0.0.1 2>/dev/null || true
+done
+```
 
-| Symptom | Where to look |
-|---------|---------------|
-| Agent enrolled but no events | LB 1514 backend health, worker `ossec.log`, agent `ossec.log` |
-| Events on worker but not in dashboard | `filebeat test output`, indexer health, index template |
-| Agent in wrong group | enrolled before group existed; reassign with `agent_groups`, re enroll with correct `WAZUH_AGENT_GROUP` |
-| Dashboard management views empty | server API on 55000, `wazuh.yml` creds, master API running |
-| Cluster sync errors | `/var/ossec/logs/cluster.log`, 1516 open, identical `<key>` |
+Confirm the alerts reached the indexer within seconds:
 
-## 16.3 Hardening checklist
+```bash
+curl -k -u admin:<PASSWORD> \
+  "https://192.168.90.111:9200/wazuh-alerts-*/_search?pretty" \
+  -H "Content-Type: application/json" -d '{
+    "size": 3,
+    "sort": [{"timestamp": {"order": "desc"}}],
+    "query": { "match": {"agent.name": "agent-linux-01"} }
+  }'
+```
+
+Expected: rule 5710 (sshd: attempt to login using a non-existent user) and rule 5503
+(PAM: user login failed), both at level 5, also visible in the dashboard Discover view.
+This proves the full path: agent collect, worker decode and rule match, Filebeat ship,
+indexer store, dashboard search.
+
+## 16.2 Hardening checklist
 
 - Change all default passwords (indexer admin, kibanaserver, wazuh-wui, dashboard
   admin) after install.
@@ -70,7 +94,7 @@ sudo /var/ossec/bin/agent_groups -l -g linux     # 2 linux agents
 - Snapshot VMs after a known good deployment as a rollback point.
 - Restrict the HAProxy stats page or disable it outside the lab.
 
-## 16.4 Overall success criteria
+## 16.3 Overall success criteria
 
 - 3 indexer nodes in one green cluster, no unassigned shards.
 - Server cluster shows 1 master and 2 workers via `cluster_control -l`.
@@ -83,7 +107,7 @@ sudo /var/ossec/bin/agent_groups -l -g linux     # 2 linux agents
 - ISM retention and rollover attached, capacity planning documented.
 - Snapshot repository configured and a restore test completed.
 
-## 16.5 Lab report template
+## 16.4 Lab report template
 
 Capture for the final report: cluster health output, `cluster_control -l` output,
 agent list with groups, a screenshot of a test alert in Discover, `_cat/shards`

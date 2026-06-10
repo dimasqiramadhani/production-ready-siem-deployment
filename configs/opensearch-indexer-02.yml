@@ -1,15 +1,15 @@
-network.host: "10.10.10.12"
+network.host: "192.168.90.113"
 node.name: "wazuh-indexer-02"
 cluster.name: "wazuh-cluster"
 node.max_local_storage_nodes: "3"
 path.data: /var/lib/wazuh-indexer
 path.logs: /var/log/wazuh-indexer
-path.repo: /mnt/wazuh-snapshots
+path.repo: ["/mnt/wazuh-snapshots"]
 
 discovery.seed_hosts:
-  - "10.10.10.11"
-  - "10.10.10.12"
-  - "10.10.10.13"
+  - "192.168.90.111"
+  - "192.168.90.113"
+  - "192.168.90.114"
 
 cluster.initial_master_nodes:
   - "wazuh-indexer-01"

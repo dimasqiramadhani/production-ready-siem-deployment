@@ -109,6 +109,32 @@ size if archives are heavy.
 Rollover condition: age 1 day or primary shard size 40 GB, whichever first. Delete
 condition: index age past retention.
 
+Apply both policies to the cluster (run once, from any node). Each policy includes an
+`ism_template` block so it attaches automatically to matching indices:
+
+```bash
+# Alerts policy (90 day retention)
+curl -k -u admin:<PASSWORD> -X PUT \
+  "https://192.168.90.111:9200/_plugins/_ism/policies/wazuh-alerts-policy" \
+  -H "Content-Type: application/json" \
+  --data-binary @configs/ism-policy-alerts.json
+
+# Archives policy (30 day retention)
+curl -k -u admin:<PASSWORD> -X PUT \
+  "https://192.168.90.111:9200/_plugins/_ism/policies/wazuh-archives-policy" \
+  -H "Content-Type: application/json" \
+  --data-binary @configs/ism-policy-archives.json
+```
+
+Confirm both are registered:
+
+```bash
+curl -k -u admin:<PASSWORD> \
+  "https://192.168.90.111:9200/_plugins/_ism/policies" | grep -o '"_id" : "[^"]*"'
+```
+
+You should see `wazuh-alerts-policy` and `wazuh-archives-policy`.
+
 ## E. Index templates
 
 Templates control settings for new indices: `number_of_shards`,
@@ -161,13 +187,13 @@ Monitoring checklist:
 Check commands:
 
 ```bash
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cluster/health?pretty"
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_nodes/stats?pretty"
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/indices?v"
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/shards?v"
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/allocation?v"
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/recovery?v"
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cluster/pending_tasks?pretty"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cluster/health?pretty"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_nodes/stats?pretty"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/indices?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/shards?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/allocation?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/recovery?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cluster/pending_tasks?pretty"
 ```
 
 ## G. Shard allocation awareness
@@ -232,27 +258,54 @@ What each backup covers:
 - **Certificate backup**: the `wazuh-certificates.tar` and deployed certs.
 - **HAProxy config backup**: `/etc/haproxy/haproxy.cfg`.
 
-Snapshot example (register repo, then snapshot):
+Snapshot setup and use:
+
+Step 1: confirm the repository path is ready. The indexer config already declares
+`path.repo: ["/mnt/wazuh-snapshots"]` and the directory was created on every node
+during indexer setup (section 6.5b), so no restart is needed here. Confirm on each
+node if you want:
 
 ```bash
-# Register a filesystem repository (path.repo must be set in opensearch.yml)
-curl -k -u admin:<PASSWORD> -X PUT "https://10.10.10.11:9200/_snapshot/wazuh_backup" \
+ls -ld /mnt/wazuh-snapshots          # exists, owned by wazuh-indexer
+grep path.repo /etc/wazuh-indexer/opensearch.yml
+```
+
+Step 2: register the repository (run once, from any node). In this lab each node has
+its own local `/mnt/wazuh-snapshots`, so register with `verify=false`; the verify step
+expects a single shared location across nodes. For production use one shared location
+(NFS or S3) and you can drop `verify=false`.
+
+```bash
+curl -k -u admin:<PASSWORD> -X PUT \
+  "https://192.168.90.111:9200/_snapshot/wazuh_backup?verify=false" \
   -H 'Content-Type: application/json' -d '{
     "type": "fs",
-    "settings": { "location": "/mnt/wazuh-snapshots" }
+    "settings": {
+      "location": "/mnt/wazuh-snapshots",
+      "compress": true
+    }
   }'
+```
 
-# Take a snapshot of the alerts indices
+Step 3: take a snapshot of the alerts indices:
+
+```bash
 curl -k -u admin:<PASSWORD> -X PUT \
-  "https://10.10.10.11:9200/_snapshot/wazuh_backup/daily-$(date +%F)?wait_for_completion=false" \
+  "https://192.168.90.111:9200/_snapshot/wazuh_backup/daily-$(date +%F)?wait_for_completion=true" \
   -H 'Content-Type: application/json' -d '{
     "indices": "wazuh-alerts-*",
+    "ignore_unavailable": true,
     "include_global_state": false
   }'
+```
 
-# Restore test
+A successful snapshot returns `"state": "SUCCESS"`.
+
+Step 4: restore test into a renamed index so it never overwrites live data:
+
+```bash
 curl -k -u admin:<PASSWORD> -X POST \
-  "https://10.10.10.11:9200/_snapshot/wazuh_backup/<SNAPSHOT_NAME>/_restore" \
+  "https://192.168.90.111:9200/_snapshot/wazuh_backup/<SNAPSHOT_NAME>/_restore" \
   -H 'Content-Type: application/json' -d '{
     "indices": "wazuh-alerts-2026.06.01",
     "rename_pattern": "(.+)",
@@ -260,25 +313,25 @@ curl -k -u admin:<PASSWORD> -X POST \
   }'
 ```
 
-## J. Operational runbook
+## J. Routine index maintenance
 
-| Problem | Impact | Check command | Possible root cause | Remediation | Risk note |
-|---------|--------|---------------|---------------------|-------------|-----------|
-| Disk almost full | Ingestion about to stop | `_cat/allocation?v` | Retention too long, no rollover | Delete old indices, enforce ISM, add disk | Deleting indices is irreversible |
-| Cluster yellow | Replicas unassigned, HA reduced | `_cluster/health?pretty` | A node down or replicas not allocated | Bring node back, check allocation | Yellow still serves search |
-| Cluster red | Some primary data unavailable | `_cat/shards?v` (UNASSIGNED p) | Primary shard lost, disk full | Recover node, restore from snapshot | Possible data loss if no replica/snapshot |
-| Unassigned shards | Degraded HA or search gaps | `_cat/shards?v` | Watermark hit, allocation disabled | Free disk, re enable allocation | Watch heap during recovery |
-| Too many shards | Heap pressure, slow cluster | `_cat/shards?v \| wc -l` | Over sharded template / no rollover | Reduce shards in template, reindex/shrink | Reindex is heavy, schedule it |
-| Index too big | Slow search, uneven node load | `_cat/indices?v` | Rollover not firing | Fix ISM rollover thresholds | New settings apply to new indices |
-| Retention not running | Disk grows, old data lingers | check ISM explain API | ISM policy not attached | Attach policy to index template | Verify delete state conditions |
-| Dashboard slow | Poor analyst experience | `_nodes/stats` heap, `_cat/recovery` | Heap pressure, hot node, big shards | Tune shards, add heap, spread load | Avoid heap above ~75% sustained |
-| Events not arriving (indexer full) | No new alerts | `_cluster/health`, disk | Flood stage read only block | Free disk then clear read only block | Ingestion paused until cleared |
-| Flood stage read only block | Indices read only, ingest stops | see command below | Disk over 95% on a node | Free disk, then clear block | Clear only after disk recovers |
+Day to day index operations for this lab:
 
-Clear a flood stage read only block after freeing disk:
+- Watch disk against the watermarks with `_cat/allocation?v`. Keep usage well below
+  the low watermark so ISM rollover and delete have room to work.
+- Confirm rollover is firing on schedule by checking index ages in `_cat/indices?v`
+  against the ISM thresholds.
+- Confirm retention is running by reading the ISM explain API for `wazuh-alerts-*`.
+- Keep the shard count healthy (`_cat/shards?v | wc -l`) by relying on the template
+  sizing in section B and rollover rather than letting indices grow unbounded.
+- Keep heap comfortable (`_nodes/stats`) by spreading shards evenly across the three
+  nodes.
+
+If disk ever crosses the flood stage watermark, OpenSearch sets indices read only.
+After freeing disk, clear the read only block:
 
 ```bash
-curl -k -u admin:<PASSWORD> -X PUT "https://10.10.10.11:9200/_all/_settings" \
+curl -k -u admin:<PASSWORD> -X PUT "https://192.168.90.111:9200/_all/_settings" \
   -H 'Content-Type: application/json' -d '{
     "index.blocks.read_only_allow_delete": null
   }'
@@ -307,4 +360,4 @@ These are produced as part of this section and live in `configs/`:
 - Storage capacity planning table (section H above).
 - Index health validation checklist (section K above).
 - Snapshot and restore plan (section I above).
-- Index troubleshooting runbook (section J above).
+- Routine index maintenance guide (section J above).

@@ -1,17 +1,17 @@
 # 6. Wazuh Indexer Cluster Deployment
 
-Three indexer nodes: wazuh-indexer-01 (10.10.10.11), wazuh-indexer-02 (10.10.10.12),
-wazuh-indexer-03 (10.10.10.13). Reference:
+Three indexer nodes: wazuh-indexer-01 (192.168.90.111), wazuh-indexer-02 (192.168.90.113),
+wazuh-indexer-03 (192.168.90.114). Reference:
 https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/
 
 ## 6.1 Concepts
 
 - **Certificate**: all indexer nodes share a common root CA. Each node has its own
   node certificate whose common name matches its node name. There is also an admin
-  certificate used to run the security init. Mismatched CN or CA is the most common
-  reason a node will not join.
+  certificate used to run the security init. The node certificate CN and CA must match
+  across all nodes for them to form one cluster.
 - **Cluster name**: `cluster.name` must be identical on all three nodes
-  (`wazuh-cluster`). Nodes with different cluster names will not form one cluster.
+  (`wazuh-cluster`) so they form a single cluster.
 - **Node name**: `node.name` must be unique per node and must match the CN in that
   node's certificate and the entry in `plugins.security.nodes_dn`.
 
@@ -41,8 +41,11 @@ sudo chmod 644 /usr/share/keyrings/wazuh.gpg
 echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
   | sudo tee /etc/apt/sources.list.d/wazuh.list
 sudo apt update
-sudo apt -y install wazuh-indexer
+sudo apt -y install wazuh-indexer=4.14.5-1
 ```
+
+> Pin the exact stable version (`=4.14.5-1`) so every node runs an identical build.
+> Confirm the candidate before installing with `apt-cache policy wazuh-indexer`.
 
 ## 6.4 Key configuration file: /etc/wazuh-indexer/opensearch.yml
 
@@ -50,7 +53,7 @@ Example for wazuh-indexer-01 (full files for all three in
 `configs/opensearch-indexer-0X.yml`):
 
 ```yaml
-network.host: "10.10.10.11"
+network.host: "192.168.90.111"
 node.name: "wazuh-indexer-01"
 cluster.name: "wazuh-cluster"
 node.max_local_storage_nodes: "3"
@@ -58,9 +61,9 @@ path.data: /var/lib/wazuh-indexer
 path.logs: /var/log/wazuh-indexer
 
 discovery.seed_hosts:
-  - "10.10.10.11"
-  - "10.10.10.12"
-  - "10.10.10.13"
+  - "192.168.90.111"
+  - "192.168.90.113"
+  - "192.168.90.114"
 
 cluster.initial_master_nodes:
   - "wazuh-indexer-01"
@@ -95,7 +98,32 @@ chmod 400 /etc/wazuh-indexer/certs/*
 chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 ```
 
-## 6.5 Enable and start (each node)
+## 6.5 Set JVM heap (each node, required for 2 GB RAM nodes)
+
+On the 2 GB nodes in this lab, set the indexer heap explicitly to 1 GB with equal min
+and max. Edit `/etc/wazuh-indexer/jvm.options`:
+
+```
+-Xms1g
+-Xmx1g
+```
+
+Rule of thumb: heap is about half of node RAM and never above ~26 to 32 GB. Equal min
+and max avoids runtime resizing.
+
+## 6.5b Create the snapshot repository directory (each node)
+
+The indexer config (`configs/opensearch-indexer-0X.yml`) already declares
+`path.repo: ["/mnt/wazuh-snapshots"]`. Create that directory and set ownership on
+every indexer node now, before first start, so the snapshot repository in section 15
+works without any later restart:
+
+```bash
+sudo mkdir -p /mnt/wazuh-snapshots
+sudo chown -R wazuh-indexer:wazuh-indexer /mnt/wazuh-snapshots
+```
+
+## 6.6 Enable and start (each node)
 
 ```bash
 sudo systemctl daemon-reload
@@ -103,7 +131,7 @@ sudo systemctl enable wazuh-indexer
 sudo systemctl start wazuh-indexer
 ```
 
-## 6.6 Initialize the cluster (run once, on any one indexer node)
+## 6.7 Initialize the cluster (run once, on any one indexer node)
 
 ```bash
 sudo /usr/share/wazuh-indexer/bin/indexer-security-init.sh
@@ -112,39 +140,26 @@ sudo /usr/share/wazuh-indexer/bin/indexer-security-init.sh
 The output reports the number of nodes connected. Run this only once for the whole
 cluster after all three nodes are up.
 
-## 6.7 Validation curl commands
+## 6.8 Validation curl commands
 
 Replace credentials as needed; default is `admin` with the generated password.
 
 ```bash
 # Cluster health
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cluster/health?pretty"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cluster/health?pretty"
 
 # Nodes in the cluster
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/nodes?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/nodes?v"
 
 # Indices
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/indices?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/indices?v"
 
 # Shards
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/shards?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/shards?v"
 
 # Allocation per node
-curl -k -u admin:<PASSWORD> "https://10.10.10.11:9200/_cat/allocation?v"
+curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/allocation?v"
 ```
 
 Healthy result: `status` is green, `number_of_nodes` is 3, `unassigned_shards` is 0,
 and `_cat/nodes` lists all three with one marked cluster_manager.
-
-## 6.8 Troubleshooting: node will not join
-
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| MasterNotDiscoveredException | seed hosts or initial master names wrong | Confirm `discovery.seed_hosts` IPs and `cluster.initial_master_nodes` names match `node.name` exactly on all nodes |
-| Node forms its own single node cluster | `cluster.name` differs | Make `cluster.name` identical on all nodes |
-| TLS handshake / no certificates found | CN mismatch or wrong CA | Ensure each node cert CN equals its `node.name` and equals its entry in `plugins.security.nodes_dn`; same `root-ca.pem` everywhere |
-| securityadmin cannot connect | run before nodes up | Start all nodes first, then run `indexer-security-init.sh` once |
-| Cluster stuck yellow with replicas | only one node up | Start the remaining nodes; replicas need at least 2 nodes |
-
-Check logs at `/var/log/wazuh-indexer/wazuh-cluster.log`. Time drift between nodes
-also blocks join, so verify NTP.

@@ -1,7 +1,7 @@
 hosts:
   - default:
-      url: https://10.10.10.21
+      url: https://192.168.90.115
       port: 55000
       username: wazuh-wui
-      password: "CHANGE_ME_WAZUH_WUI_PASSWORD"
+      password: "<WAZUH_WUI_PASSWORD>"
       run_as: false
