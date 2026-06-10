@@ -223,7 +223,8 @@ sequenceDiagram
     LB->>W2: round robin to worker-02
     Note over W2: decode, rule match, generate alert
 
-    Note over LB,W2: HAProxy health checks keep both workers in the pool;<br/>if one is unavailable, traffic continues on the other with no data loss
+    Note over LB,W2: HAProxy health checks keep both workers in the pool
+    Note over LB,W2: if one is unavailable traffic continues on the other
 ```
 
 ### Deployment sequence
