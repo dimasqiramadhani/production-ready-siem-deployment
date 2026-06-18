@@ -90,56 +90,46 @@ restarts) it calls the Wazuh server API on 55000. Both connections use TLS.
 
 ## 1.8 ASCII architecture diagram
 
-```
-                    Windows agents                Ubuntu agents
-                  win-agent-01 .101              ubuntu-agent-01 .111
-                  win-agent-02 .102              ubuntu-agent-02 .112
-                        |                                |
-                        |  1514/TCP event and keepalive  |
-                        |  1515/TCP enrollment           |
-                        +----------------+---------------+
-                                         |
-                                         v
-                              +---------------------+
-                              |    wazuh-lb-01      |
-                              |   192.168.90.112       |
-                              |   HAProxy (TCP)     |
-                              +----------+----------+
-                                         |
-            1515/TCP -> master           |          1514/TCP -> workers (RR)
-            +----------------------------+----------------------------+
-            |                            |                            |
-            v                            v                            v
-   +------------------+        +------------------+        +------------------+
-   | wazuh-master-01  |        | wazuh-worker-01  |        | wazuh-worker-02  |
-   |   192.168.90.115    |<------>|   192.168.90.116    |<------>|   192.168.90.117    |
-   |  master node     | 1516   |  worker node     | 1516   |  worker node     |
-   +--------+---------+        +--------+---------+        +--------+---------+
-            |                           |                           |
-            |   Filebeat -> 9200/TCP (alerts.json to indexer cluster)
-            +---------------------------+---------------------------+
-                                        |
-                                        v
-   +------------------+   9300-9400  +------------------+   9300-9400  +------------------+
-   | wazuh-indexer-01 |<------------>| wazuh-indexer-02 |<------------>| wazuh-indexer-03 |
-   |   192.168.90.111    |   transport  |   192.168.90.113    |   transport  |   192.168.90.114    |
-   +--------+---------+              +--------+---------+              +--------+---------+
-            ^                                 ^                                 ^
-            |                                 |                                 |
-            +------------------ 9200/TCP search and index ---------------------+
-                                        ^
-                                        |
-                              +---------+-----------+
-                              | wazuh-dashboard-01  |
-                              |   192.168.90.118       |
-                              |  9200 -> indexer    |
-                              |  55000 -> server API|
-                              +---------+-----------+
-                                        ^
-                                        | 443/TCP HTTPS
-                                        |
-                                   Admin / User browser
-                              https://wazuh-dashboard.lab.local
+```mermaid
+flowchart TB
+    subgraph AGENTS["Monitored endpoints"]
+        WA["win-agent-01 192.168.90.122<br/>win-agent-02 192.168.90.123"]
+        UA["agent-linux-01 192.168.90.119<br/>agent-linux-02 192.168.90.120"]
+    end
+
+    LB["wazuh-lb-01 192.168.90.112<br/>HAProxy TCP mode"]
+
+    M["wazuh-master-01<br/>192.168.90.115<br/>master node"]
+    K1["wazuh-worker-01<br/>192.168.90.116<br/>worker node"]
+    K2["wazuh-worker-02<br/>192.168.90.117<br/>worker node"]
+
+    I1["wazuh-indexer-01<br/>192.168.90.111"]
+    I2["wazuh-indexer-02<br/>192.168.90.113"]
+    I3["wazuh-indexer-03<br/>192.168.90.114"]
+
+    D["wazuh-dashboard-01<br/>192.168.90.118"]
+    A["Admin / User browser<br/>wazuh-dashboard.lab.local"]
+
+    WA -->|1514 event / 1515 enroll| LB
+    UA -->|1514 event / 1515 enroll| LB
+
+    LB -->|1515 enrollment| M
+    LB -->|1514 reporting RR| K1
+    LB -->|1514 reporting RR| K2
+
+    M <-->|1516 cluster sync| K1
+    M <-->|1516 cluster sync| K2
+
+    M -->|Filebeat 9200| I1
+    K1 -->|Filebeat 9200| I2
+    K2 -->|Filebeat 9200| I3
+
+    I1 <-->|9300:9400 transport| I2
+    I2 <-->|9300:9400 transport| I3
+
+    D -->|9200 search| I1
+    D -->|55000 API| M
+    A -->|443 HTTPS| D
 ```
 
 ---
