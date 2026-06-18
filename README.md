@@ -269,3 +269,11 @@ The four docs map to deployment phases in order: read 01, then deploy following 
 03, and 04. Config files are grouped by the component they belong to, so each stage
 pulls from one subfolder. Section numbering (Stage 0 through Stage 9) is preserved
 across the docs so cross references stay intact.
+
+## Author
+
+Dimasqi Ramadhani, Security Engineer
+
+- [Portfolio](https://dimasqiramadhani.com)
+- [GitHub](https://github.com/dimasqiramadhani)
+- [Linkedin](https://linkedin.com/in/dimasqiramadhani)
