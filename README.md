@@ -47,8 +47,8 @@ Swap: 4 GB swapfile on all nodes, vm.swappiness=10.
 ## Resource requirements at a glance
 
 The lab is 13 VMs total: 8 server side nodes plus 5 monitored endpoints (1 AD domain
-controller, 2 Windows agents, 2 Ubuntu agents). Pick one profile from section
-02-resource-planning:
+controller, 2 Windows agents, 2 Ubuntu agents). Pick one profile from the planning
+doc (docs/01-planning.md):
 
 | Profile | Total RAM (server + endpoints) | Per indexer | Use when |
 |---------|-------------------------------|-------------|----------|
@@ -59,7 +59,7 @@ controller, 2 Windows agents, 2 Ubuntu agents). Pick one profile from section
 Hard requirements regardless of profile: all nodes on subnet 192.168.90.0/24, FQDN
 resolution between every node (DNS or /etc/hosts), NTP in sync, 4 GB swap on the
 server nodes, `vm.max_map_count=262144` on the indexer nodes, and SSD on the indexers
-for any non trivial volume. Full sizing tables in 02-resource-planning.
+for any non trivial volume. Full sizing tables in docs/01-planning.md.
 
 ## Deployment status
 
@@ -248,23 +248,24 @@ through from a clean VM set to a fully validated SIEM.
 
 ```
 wazuh-multinode-lab/
-  README.md
-  01-overview/        Architecture overview
-  02-resource-planning/  Sizing tables
-  03-network/         Firewall matrix
-  04-checklist/       Pre deployment checklist and Stage 0 procedures
-  05-deployment-sequence/  Ordered deployment plan
-  06-indexer-cluster/ 3 node indexer deployment
-  07-server-cluster/  Master and worker configuration
-  08-dashboard/       Dashboard deployment
-  09-load-balancer/   HAProxy and NGINX stream
-  10-agent-grouping/  windows and linux groups
-  11-centralized-config/  Per group agent.conf
-  12-rules-decoders/  Custom rules and decoders
-  13-windows-deployment/  GPO and PowerShell Remoting
-  14-linux-ansible/   Ansible playbook
-  15-index-shard-management/  ISM, retention, capacity, snapshot
-  16-validation/      End to end validation and success criteria
-  configs/            Copy ready config files
-  scripts/            Copy ready scripts
+  README.md             This landing page (topology, status, diagrams)
+  DEPLOYMENT-LOG.md     Stage by stage record of the deployment
+  docs/
+    01-planning.md      Overview, sizing, network, checklist, deployment sequence
+    02-core-stack.md    Indexer cluster, server cluster, dashboard, load balancer
+    03-agents.md        Groups, agent.conf, rules and decoders, Windows GPO, Ansible
+    04-operations.md    Index and shard management, validation, hardening
+  configs/
+    indexer/            opensearch.yml per node, index templates, ISM policies
+    server/             cluster blocks, global config, Filebeat, custom rules/decoders
+    dashboard/          opensearch_dashboards.yml, wazuh.yml
+    agents/             agent.conf per group, Ansible playbook and inventory
+    lb/                 HAProxy config
+    shared/             /etc/hosts, unattended install config
+  scripts/              Copy ready scripts (validation, agent deploy)
 ```
+
+The four docs map to deployment phases in order: read 01, then deploy following 02,
+03, and 04. Config files are grouped by the component they belong to, so each stage
+pulls from one subfolder. Section numbering (Stage 0 through Stage 9) is preserved
+across the docs so cross references stay intact.
