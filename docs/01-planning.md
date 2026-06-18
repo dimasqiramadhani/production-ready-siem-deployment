@@ -39,13 +39,13 @@ cluster through the load balancer. Agents never analyze; they only forward.
 
 ## 1.2 Difference between the components
 
-| Component | Job | Data direction |
-|-----------|-----|----------------|
-| Agent | Collect and forward logs | Sends to LB then to workers |
-| Load balancer | Distribute and fail over agent traffic | Forwards 1514 to workers, 1515 to master |
-| Server cluster | Decode, rule match, generate alerts | Receives from agents, sends alerts via Filebeat to indexer |
-| Indexer cluster | Store and search alert/event data | Receives from Filebeat, serves dashboard |
-| Dashboard | Visualize and manage | Reads indexer (9200) and server API (55000) |
+| Component       | Job                                    | Data direction                                             |
+|-----------------|----------------------------------------|------------------------------------------------------------|
+| Agent           | Collect and forward logs               | Sends to LB then to workers                                |
+| Load balancer   | Distribute and fail over agent traffic | Forwards 1514 to workers, 1515 to master                   |
+| Server cluster  | Decode, rule match, generate alerts    | Receives from agents, sends alerts via Filebeat to indexer |
+| Indexer cluster | Store and search alert/event data      | Receives from Filebeat, serves dashboard                   |
+| Dashboard       | Visualize and manage                   | Reads indexer (9200) and server API (55000)                |
 
 ## 1.3 Why agents point to the load balancer
 
@@ -154,16 +154,16 @@ actual lab is deployed on a third, tighter profile documented first.
 All 8 server side nodes run Ubuntu 22.04 with 2 GB RAM and 128 GB disk each, due to
 resource limits.
 
-| VM | IP | vCPU | RAM | Disk |
-|----|-----|------|-----|------|
-| wazuh-indexer-01 | 192.168.90.111 | shared | 2 GB | 128 GB |
-| wazuh-indexer-02 | 192.168.90.113 | shared | 2 GB | 128 GB |
-| wazuh-indexer-03 | 192.168.90.114 | shared | 2 GB | 128 GB |
-| wazuh-master-01 | 192.168.90.115 | shared | 2 GB | 128 GB |
-| wazuh-worker-01 | 192.168.90.116 | shared | 2 GB | 128 GB |
-| wazuh-worker-02 | 192.168.90.117 | shared | 2 GB | 128 GB |
-| wazuh-dashboard-01 | 192.168.90.118 | shared | 2 GB | 128 GB |
-| wazuh-lb-01 | 192.168.90.112 | shared | 2 GB | 128 GB |
+| VM                       | IP             | vCPU   | RAM  | Disk   |
+|--------------------------|----------------|--------|------|--------|
+| wazuh-indexer-01         | 192.168.90.111 | shared | 2 GB | 128 GB |
+| wazuh-indexer-02         | 192.168.90.113 | shared | 2 GB | 128 GB |
+| wazuh-indexer-03         | 192.168.90.114 | shared | 2 GB | 128 GB |
+| wazuh-manager-master     | 192.168.90.115 | shared | 2 GB | 128 GB |
+| wazuh-manager-worker-01  | 192.168.90.116 | shared | 2 GB | 128 GB |
+| wazuh-manager-worker-02  | 192.168.90.117 | shared | 2 GB | 128 GB |
+| wazuh-dashboard          | 192.168.90.118 | shared | 2 GB | 128 GB |
+| wazuh-lb-01              | 192.168.90.112 | shared | 2 GB | 128 GB |
 
 ### Constraint warning: 2 GB RAM is below the Wazuh recommended minimum
 
@@ -194,40 +194,40 @@ Suitable for a laptop or resource constrained host. The whole lab fits in roughl
 32 GB RAM if you are careful, but 48 to 64 GB is comfortable.
 
 
-| VM | vCPU | RAM | Disk | Notes |
-|----|------|-----|------|-------|
-| wazuh-indexer-01 | 2 | 4 GB | 50 GB | JVM heap 2 GB |
-| wazuh-indexer-02 | 2 | 4 GB | 50 GB | JVM heap 2 GB |
-| wazuh-indexer-03 | 2 | 4 GB | 50 GB | JVM heap 2 GB |
-| wazuh-master-01 | 2 | 4 GB | 40 GB | Coordination, enrollment |
-| wazuh-worker-01 | 2 | 4 GB | 40 GB | Event analysis |
-| wazuh-worker-02 | 2 | 4 GB | 40 GB | Event analysis |
-| wazuh-dashboard-01 | 2 | 4 GB | 30 GB | Node and OpenSearch Dashboards |
-| wazuh-lb-01 | 1 | 1 GB | 20 GB | HAProxy only |
-| win-agent-01 | 2 | 4 GB | 40 GB | Windows Server or 10/11 |
-| win-agent-02 | 2 | 4 GB | 40 GB | Windows Server or 10/11 |
-| ubuntu-agent-01 | 1 | 2 GB | 20 GB | Ubuntu 22.04/24.04 |
-| ubuntu-agent-02 | 1 | 2 GB | 20 GB | Ubuntu 22.04/24.04 |
+| VM                      | vCPU | RAM  | Disk  | Notes                          |
+|-------------------------|------|------|-------|--------------------------------|
+| wazuh-indexer-01        | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
+| wazuh-indexer-02        | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
+| wazuh-indexer-03        | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
+| wazuh-manager-master    | 2    | 4 GB | 40 GB | Coordination, enrollment       |
+| wazuh-manager-worker-01 | 2    | 4 GB | 40 GB | Event analysis                 |
+| wazuh-manager-worker-02 | 2    | 4 GB | 40 GB | Event analysis                 |
+| wazuh-dashboard         | 2    | 4 GB | 30 GB | Node and OpenSearch Dashboards |
+| wazuh-lb-01             | 1    | 1 GB | 20 GB | HAProxy only                   |
+| win-agent-01            | 2    | 4 GB | 40 GB | Windows Server or 10/11        |
+| win-agent-02            | 2    | 4 GB | 40 GB | Windows Server or 10/11        |
+| linux-agent-01          | 1    | 2 GB | 20 GB | Ubuntu 22.04/24.04             |
+| linux-agent-02          | 1    | 2 GB | 20 GB | Ubuntu 22.04/24.04             |
 
 ## 2.2 Profile B: Production like lab version
 
 Realistic for simulating an enterprise rollout and for index/shard testing under
 load.
 
-| VM | vCPU | RAM | Disk | Notes |
-|----|------|-----|------|-------|
-| wazuh-indexer-01 | 8 | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier |
-| wazuh-indexer-02 | 8 | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier |
-| wazuh-indexer-03 | 8 | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier |
-| wazuh-master-01 | 4 | 8 GB | 100 GB | Coordination, enrollment |
-| wazuh-worker-01 | 8 | 16 GB | 200 GB | High event throughput |
-| wazuh-worker-02 | 8 | 16 GB | 200 GB | High event throughput |
-| wazuh-dashboard-01 | 4 | 8 GB | 100 GB | Dedicated, not on indexer |
-| wazuh-lb-01 | 2 | 2 GB | 40 GB | HAProxy, lightweight but critical |
-| win-agent-01 | 2 | 4 GB | 60 GB | Windows endpoint |
-| win-agent-02 | 2 | 4 GB | 60 GB | Windows endpoint |
-| ubuntu-agent-01 | 2 | 4 GB | 40 GB | Ubuntu endpoint |
-| ubuntu-agent-02 | 2 | 4 GB | 40 GB | Ubuntu endpoint |
+| VM                      | vCPU | RAM   | Disk       | Notes                             |
+|-------------------------|------|-------|------------|---------------------------------- |
+| wazuh-indexer-01        | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
+| wazuh-indexer-02        | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          | 
+| wazuh-indexer-03        | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
+| wazuh-manager-master    | 4    | 8 GB  | 100 GB     | Coordination, enrollment          |
+| wazuh-manager-worker-01 | 8    | 16 GB | 200 GB     | High event throughput             |
+| wazuh-manager-worker-02 | 8    | 16 GB | 200 GB     | High event throughput             |
+| wazuh-dashboard         | 4    | 8 GB  | 100 GB     | Dedicated, not on indexer         |
+| wazuh-lb-01             | 2    | 2 GB  | 40 GB      | HAProxy, lightweight but critical |
+| win-agent-01            | 2    | 4 GB  | 60 GB      | Windows endpoint                  |
+| win-agent-02            | 2    | 4 GB  | 60 GB      | Windows endpoint                  |
+| linux-agent-01          | 2    | 4 GB  | 40 GB      | Ubuntu endpoint                   |
+| linux-agent-02          | 2    | 4 GB  | 40 GB      | Ubuntu endpoint                   |
 
 ## 2.3 Sizing notes
 
@@ -252,23 +252,23 @@ load.
 
 ## 3.1 Port matrix
 
-| Source | Destination | Port | Protocol | Function | Required |
-|--------|-------------|------|----------|----------|----------|
-| Agents | wazuh-lb-01 | 1514 | TCP | Agent event and keepalive reporting | Required |
-| Agents | wazuh-lb-01 | 1515 | TCP | Agent enrollment | Required |
-| wazuh-lb-01 | wazuh-master-01 | 1515 | TCP | Enrollment forward to master | Required |
-| wazuh-lb-01 | wazuh-worker-01 | 1514 | TCP | Event forward to worker | Required |
-| wazuh-lb-01 | wazuh-worker-02 | 1514 | TCP | Event forward to worker | Required |
-| Server nodes | Server nodes | 1516 | TCP | Wazuh server cluster communication | Required |
-| Server nodes (Filebeat) | Indexer nodes | 9200 | TCP | Ship alerts to indexer | Required |
-| Indexer nodes | Indexer nodes | 9300-9400 | TCP | Indexer inter node transport | Required |
-| wazuh-dashboard-01 | Server API (master) | 55000 | TCP | Management data | Required |
-| wazuh-dashboard-01 | Indexer nodes | 9200 | TCP | Alert search | Required |
-| Admin/User | wazuh-dashboard-01 | 443 | TCP | Dashboard HTTPS | Required |
-| Admin | All Linux nodes | 22 | TCP | SSH administration | Optional |
-| Admin | Windows agents | 3389 | TCP | RDP administration | Optional |
-| Admin | Windows agents | 5985/5986 | TCP | WinRM (PowerShell Remoting) | Optional |
-| Agents | wazuh-master-01 | 1514/1515 | TCP | Direct failover if LB down (not used by default) | Optional |
+| Source                  | Destination             | Port      | Protocol | Function                                         | Required |
+|-------------------------|-------------------------|-----------|----------|--------------------------------------------------|----------|
+| Agents                  | wazuh-lb-01             | 1514      | TCP      | Agent event and keepalive reporting              | Required |
+| Agents                  | wazuh-lb-01             | 1515      | TCP      | Agent enrollment                                 | Required |
+| wazuh-lb-01             | wazuh-manager-master    | 1515      | TCP      | Enrollment forward to master                     | Required |
+| wazuh-lb-01             | wazuh-manager-worker-01 | 1514      | TCP      | Event forward to worker                          | Required |
+| wazuh-lb-01             | wazuh-manager-worker-02 | 1514      | TCP      | Event forward to worker                          | Required |
+| Server nodes            | Server nodes            | 1516      | TCP      | Wazuh server cluster communication               | Required |
+| Server nodes (Filebeat) | Indexer nodes           | 9200      | TCP      | Ship alerts to indexer                           | Required |
+| Indexer nodes           | Indexer nodes           | 9300-9400 | TCP      | Indexer inter node transport                     | Required |
+| wazuh-dashboard         | Server API (master)     | 55000     | TCP      | Management data                                  | Required |
+| wazuh-dashboard         | Indexer nodes           | 9200      | TCP      | Alert search                                     | Required |
+| Admin/User              | wazuh-dashboard         | 443       | TCP      | Dashboard HTTPS                                  | Required |
+| Admin                   | All Linux nodes         | 22        | TCP      | SSH administration                               | Optional |
+| Admin                   | Windows agents          | 3389      | TCP      | RDP administration                               | Optional |
+| Admin                   | Windows agents          | 5985/5986 | TCP      | WinRM (PowerShell Remoting)                      | Optional |
+| Agents                  | wazuh-manager-master    | 1514/1515 | TCP      | Direct failover if LB down (not used by default) | Optional |
 
 Notes on the API port: the dashboard connects to the Wazuh server API on 55000. In a
 cluster the API runs on every node; point the dashboard at the master for a stable

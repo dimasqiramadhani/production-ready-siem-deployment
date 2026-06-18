@@ -16,13 +16,13 @@ All API examples assume `-u admin:<PASSWORD>` and one of the indexer hosts.
 
 ## A. Index overview
 
-| Index pattern | Contents |
-|---------------|----------|
-| `wazuh-alerts-*` | Events that became alerts (the main searchable data) |
-| `wazuh-archives-*` | Raw event archive, only if archives are enabled |
-| `wazuh-monitoring-*` | Agent status and operational monitoring data |
-| `wazuh-states-*` / internal | Vulnerability and internal state indices |
-| `.opensearch*`, `.kibana*` | Dashboard and indexer internal indices |
+| Index pattern               | Contents                                             |
+|-----------------------------|------------------------------------------------------|
+| `wazuh-alerts-*`            | Events that became alerts (the main searchable data) |
+| `wazuh-archives-*`          | Raw event archive, only if archives are enabled      |
+| `wazuh-monitoring-*`        | Agent status and operational monitoring data         |
+| `wazuh-states-*` / internal | Vulnerability and internal state indices             |
+| `.opensearch*`, `.kibana*`  | Dashboard and indexer internal indices               |
 
 Difference:
 - **Alerts index**: events that triggered a rule. This is what most dashboards and
@@ -51,10 +51,10 @@ Difference:
 
 ### Shard sizing table
 
-| Scenario | Endpoints | Est. daily ingest | Primary shards | Replicas | Retention | Notes |
-|----------|-----------|-------------------|----------------|----------|-----------|-------|
-| Small lab | 4 | ~0.2 GB/day | 1 | 1 | 7 to 14 days | One primary is plenty; replica still useful with 3 nodes for HA testing |
-| Production sim | 200 | ~10 GB/day | 3 | 1 | 90 days | 3 primaries spread across 3 nodes, daily rollover keeps shards in the 20 to 50 GB band |
+| Scenario       | Endpoints | Est. daily ingest | Primary shards | Replicas | Retention    | Notes                                                                                  |
+|----------------|-----------|-------------------|----------------|----------|--------------|----------------------------------------------------------------------------------------|
+| Small lab      | 4         | ~0.2 GB/day       | 1              | 1        | 7 to 14 days | One primary is plenty; replica still useful with 3 nodes for HA testing                |
+| Production sim | 200       | ~10 GB/day        | 3              | 1        | 90 days      | 3 primaries spread across 3 nodes, daily rollover keeps shards in the 20 to 50 GB band |
 
 With 3 indexer nodes, 3 primaries plus 1 replica each gives 6 shards that distribute
 two per node, which survives a single node loss.
@@ -230,12 +230,12 @@ of about 1.2 covers indexing overhead and merges.
 Worked example: 5 GB/day, 90 days, 1 replica, 1.2 overhead:
 `5 * 90 * 2 * 1.2 = 1080 GB`.
 
-| Endpoints | Est. daily ingest | Retention days | Replica factor | Overhead | Est. total storage | Recommended disk per indexer node (3 nodes) |
+| Endpoints | Est. daily ingest | Retention days | Replica factor | Overhead | Est. total storage | Recommended disk per indexer node (3 nodes)   |
 |-----------|-------------------|----------------|----------------|----------|--------------------|-----------------------------------------------|
-| 4 (lab) | 0.2 GB | 14 | 2 | 1.2 | ~6.7 GB | 50 GB (lab headroom) |
-| 50 | 2.5 GB | 90 | 2 | 1.2 | ~540 GB | ~250 GB |
-| 100 | 5 GB | 90 | 2 | 1.2 | ~1080 GB | ~450 GB |
-| 200 | 10 GB | 90 | 2 | 1.2 | ~2160 GB | ~850 GB |
+| 4 (lab)   | 0.2 GB            | 14             | 2              | 1.2      | ~6.7 GB            | 50 GB (lab headroom)                          |
+| 50        | 2.5 GB            | 90             | 2              | 1.2      | ~540 GB            | ~250 GB                                       |
+| 100       | 5 GB              | 90             | 2              | 1.2      | ~1080 GB           | ~450 GB                                       |
+| 200       | 10 GB             | 90             | 2              | 1.2      | ~2160 GB           | ~850 GB                                       |
 
 Per node disk is total divided across 3 nodes plus headroom to stay under the high
 watermark.

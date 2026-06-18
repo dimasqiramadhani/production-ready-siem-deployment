@@ -12,26 +12,26 @@ Wazuh 4.14.5 stable version distributed deployment on Ubuntu 22.04. All componen
 
 ### Core SIEM infrastructure
 
-| VM | IP | FQDN | Role | Status |
-|----|----|------|------|--------|
-| wazuh-indexer-01 | 192.168.90.111 | wazuh-indexer-01.lab.local | Indexer node | deployed |
-| wazuh-indexer-02 | 192.168.90.113 | wazuh-indexer-02.lab.local | Indexer node | deployed |
-| wazuh-indexer-03 | 192.168.90.114 | wazuh-indexer-03.lab.local | Indexer node | deployed |
-| wazuh-master-01 | 192.168.90.115 | wazuh-master-01.lab.local | Server cluster master | deployed |
-| wazuh-worker-01 | 192.168.90.116 | wazuh-worker-01.lab.local | Server cluster worker | deployed |
-| wazuh-worker-02 | 192.168.90.117 | wazuh-worker-02.lab.local | Server cluster worker | deployed |
-| wazuh-dashboard-01 | 192.168.90.118 | wazuh-dashboard.lab.local | Dashboard | deployed |
-| wazuh-lb-01 | 192.168.90.112 | wazuh-lb.lab.local | HAProxy load balancer | deployed |
+| VM                      | IP             | FQDN                              | Role                  | Status   |
+|-------------------------|----------------|-----------------------------------|-----------------------|----------|
+| wazuh-indexer-01        | 192.168.90.111 | wazuh-indexer-01.lab.local        | Indexer node          | deployed |
+| wazuh-indexer-02        | 192.168.90.113 | wazuh-indexer-02.lab.local        | Indexer node          | deployed |
+| wazuh-indexer-03        | 192.168.90.114 | wazuh-indexer-03.lab.local        | Indexer node          | deployed |
+| wazuh-manager-master    | 192.168.90.115 | wazuh-manager-master.lab.local    | Server cluster master | deployed |
+| wazuh-manager-worker-01 | 192.168.90.116 | wazuh-manager-worker-01.lab.local | Server cluster worker | deployed |
+| wazuh-manager-worker-02 | 192.168.90.117 | wazuh-manager-worker-02.lab.local | Server cluster worker | deployed |
+| wazuh-dashboard         | 192.168.90.118 | wazuh-dashboard.lab.local         | Dashboard             | deployed |
+| wazuh-lb-01             | 192.168.90.112 | wazuh-lb.lab.local                | HAProxy load balancer | deployed |
 
 ### Monitored endpoints
 
-| VM | IP | Domain / Group | Role | Status |
-|----|----|----------------|------|--------|
-| windows-ad-dc | 192.168.90.121 | lab.local | Active Directory DC + DNS | deployed |
-| win-agent-01 | 192.168.90.122 | lab.local / windows | Windows agent (domain member) | deployed |
-| win-agent-02 | 192.168.90.123 | lab.local / windows | Windows agent (domain member) | deployed |
-| ubuntu-agent-01 | 192.168.90.119 | linux | Ubuntu agent | deployed |
-| ubuntu-agent-02 | 192.168.90.120 | linux | Ubuntu agent | deployed |
+| VM             | IP             | Domain / Group      | Role                          | Status   |
+|----------------|----------------|---------------------|-------------------------------|----------|
+| windows-ad-dc  | 192.168.90.121 | lab.local           | Active Directory DC + DNS     | deployed |
+| win-agent-01   | 192.168.90.122 | lab.local / windows | Windows agent (domain member) | deployed |
+| win-agent-02   | 192.168.90.123 | lab.local / windows | Windows agent (domain member) | deployed |
+| linux-agent-01 | 192.168.90.119 | linux               | Ubuntu agent                  | deployed |
+| linux-agent-02 | 192.168.90.120 | linux               | Ubuntu agent                  | deployed |
 
 > Network: everything lives on subnet 192.168.90.0/24. The Windows endpoints join an
 > Active Directory domain (lab.local) so the Wazuh agent can be pushed to all of them
@@ -50,11 +50,11 @@ The lab is 13 VMs total: 8 server side nodes plus 5 monitored endpoints (1 AD do
 controller, 2 Windows agents, 2 Ubuntu agents). Pick one profile from the planning
 doc (docs/01-planning.md):
 
-| Profile | Total RAM (server + endpoints) | Per indexer | Use when |
-|---------|-------------------------------|-------------|----------|
-| Actual deployed (this lab) | ~16 GB server side, tight | 2 GB / 1 GB heap | Constrained host, low volume PoC |
-| Profile A (minimum lab) | ~48 to 64 GB comfortable | 4 GB / 2 GB heap | Laptop or single workstation |
-| Profile B (production like) | 120 GB+ | 16 GB / 8 GB heap | Throughput and shard testing |
+| Profile                     | Total RAM (server + endpoints) | Per indexer       | Use when                         |
+|-----------------------------|--------------------------------|-------------------|----------------------------------|
+| Actual deployed (this lab)  | ~16 GB server side, tight      | 2 GB / 1 GB heap  | Constrained host, low volume PoC |
+| Profile A (minimum lab)     | ~48 to 64 GB comfortable       | 4 GB / 2 GB heap  | Laptop or single workstation     |
+| Profile B (production like) | 120 GB+                        | 16 GB / 8 GB heap | Throughput and shard testing     |
 
 Hard requirements regardless of profile: all nodes on subnet 192.168.90.0/24, FQDN
 resolution between every node (DNS or /etc/hosts), NTP in sync, 4 GB swap on the
@@ -80,15 +80,15 @@ for any non trivial volume. Full sizing tables in docs/01-planning.md.
 Approximate hands on time for a clean run by someone following this documentation,
 assuming the VMs are already provisioned. Times scale with hardware and familiarity.
 
-| Phase | Stages | Rough time |
-|-------|--------|-----------|
-| Preparation and certificates | 0 to 1 | 45 to 90 min |
-| Indexer cluster | 2 | 30 to 45 min |
-| Server cluster and dashboard | 3 to 4 | 45 to 60 min |
-| Load balancer and agent groups | 5 to 6 | 30 min |
-| Agent mass deployment (Ansible + AD GPO) | 7A to 7B | 60 to 90 min |
-| Index management and final validation | 8 to 9 | 30 to 45 min |
-| **Total** | **0 to 9** | **roughly 4 to 6 hours** |
+| Phase                                    | Stages     | Rough time               |
+|------------------------------------------|------------|--------------------------|
+| Preparation and certificates             | 0 to 1     | 45 to 90 min             |
+| Indexer cluster                          | 2          | 30 to 45 min             |
+| Server cluster and dashboard             | 3 to 4     | 45 to 60 min             |
+| Load balancer and agent groups           | 5 to 6     | 30 min                   |
+| Agent mass deployment (Ansible + AD GPO) | 7A to 7B   | 60 to 90 min             |
+| Index management and final validation    | 8 to 9     | 30 to 45 min             |
+| **Total**                                | **0 to 9** | **roughly 4 to 6 hours** |
 
 The biggest variables are the Active Directory setup in Stage 7B (forest promotion and
 GPO replication add waiting time) and first dashboard load on 2 GB nodes (3 to 5
@@ -118,11 +118,11 @@ minutes). Provisioning the 13 VMs and the OS install is not included.
 Config files and commands use placeholders for passwords rather than hardcoded
 defaults. Replace each with your own value before deploying:
 
-| Placeholder | What it is | Where to set the real value |
-|-------------|-----------|------------------------------|
-| `<INDEXER_ADMIN_PASSWORD>` | indexer `admin` user password | set during indexer install; used in filebeat.yml and all curl examples |
-| `<KIBANASERVER_PASSWORD>` | dashboard service account password | used in opensearch_dashboards.yml |
-| `<WAZUH_WUI_PASSWORD>` | Wazuh API dashboard account password | used in wazuh.yml |
+| Placeholder                | What it is                           | Where to set the real value                                            |
+|----------------------------|--------------------------------------|------------------------------------------------------------------------|
+| `<INDEXER_ADMIN_PASSWORD>` | indexer `admin` user password        | set during indexer install; used in filebeat.yml and all curl examples |
+| `<KIBANASERVER_PASSWORD>`  | dashboard service account password   | used in opensearch_dashboards.yml                                      |
+| `<WAZUH_WUI_PASSWORD>`     | Wazuh API dashboard account password | used in wazuh.yml                                                      |
 
 The usernames themselves (`admin`, `kibanaserver`, `wazuh-wui`) are built-in Wazuh
 accounts and stay as is; only the passwords change. Change the shipped defaults with
