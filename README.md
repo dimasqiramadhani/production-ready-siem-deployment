@@ -1,3 +1,5 @@
+![Cover Image](screenshots/Cover%20Image.png)
+
 # Production Ready SIEM Deployment
 
 > Wazuh multi node cluster lab (distributed architecture)
