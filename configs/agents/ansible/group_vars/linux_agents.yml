@@ -1,5 +1,5 @@
-wazuh_manager: "192.168.90.112"
-wazuh_registration_server: "192.168.90.112"
+wazuh_manager: "<LB_IP>"
+wazuh_registration_server: "<LB_IP>"
 wazuh_agent_group: "linux"
-wazuh_registration_password: "WazuhEnroll2024!"
+wazuh_registration_password: "<ENROLLMENT_PASSWORD>"
 wazuh_agent_version: "4.14.5-1"

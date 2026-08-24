@@ -1,7 +1,7 @@
 # Part 1: Planning and Preparation
 
 This part covers project overview, resource planning, network design, the
-pre-deployment checklist, and the deployment sequence.
+preparation checklist, and the deployment sequence.
 
 ---
 
@@ -93,21 +93,21 @@ restarts) it calls the Wazuh server API on 55000. Both connections use TLS.
 ```mermaid
 flowchart TB
     subgraph AGENTS["Monitored endpoints"]
-        WA["win-agent-01 192.168.90.122<br/>win-agent-02 192.168.90.123"]
-        UA["agent-linux-01 192.168.90.119<br/>agent-linux-02 192.168.90.120"]
+        WA["win-agent-01 <WIN_AGENT_01_IP><br/>win-agent-02 <WIN_AGENT_02_IP>"]
+        UA["agent-linux-01 <UBUNTU_AGENT_01_IP><br/>agent-linux-02 <UBUNTU_AGENT_02_IP>"]
     end
 
-    LB["wazuh-lb-01 192.168.90.112<br/>HAProxy TCP mode"]
+    LB["wazuh-lb-01 <LB_IP><br/>HAProxy TCP mode"]
 
-    M["wazuh-master-01<br/>192.168.90.115<br/>master node"]
-    K1["wazuh-worker-01<br/>192.168.90.116<br/>worker node"]
-    K2["wazuh-worker-02<br/>192.168.90.117<br/>worker node"]
+    M["wazuh-master-01<br/><MASTER_IP><br/>master node"]
+    K1["wazuh-worker-01<br/><WORKER_01_IP><br/>worker node"]
+    K2["wazuh-worker-02<br/><WORKER_02_IP><br/>worker node"]
 
-    I1["wazuh-indexer-01<br/>192.168.90.111"]
-    I2["wazuh-indexer-02<br/>192.168.90.113"]
-    I3["wazuh-indexer-03<br/>192.168.90.114"]
+    I1["wazuh-indexer-01<br/><INDEXER_01_IP>"]
+    I2["wazuh-indexer-02<br/><INDEXER_02_IP>"]
+    I3["wazuh-indexer-03<br/><INDEXER_03_IP>"]
 
-    D["wazuh-dashboard-01<br/>192.168.90.118"]
+    D["wazuh-dashboard-01<br/><DASHBOARD_IP>"]
     A["Admin / User browser<br/>wazuh-dashboard.lab.local"]
 
     WA -->|1514 event / 1515 enroll| LB
@@ -144,16 +144,16 @@ actual lab is deployed on a third, tighter profile documented first.
 All 8 server side nodes run Ubuntu 22.04 with 2 GB RAM and 128 GB disk each, due to
 resource limits.
 
-| VM                       | IP             | vCPU   | RAM  | Disk   |
-|--------------------------|----------------|--------|------|--------|
-| wazuh-indexer-01         | 192.168.90.111 | shared | 2 GB | 128 GB |
-| wazuh-indexer-02         | 192.168.90.113 | shared | 2 GB | 128 GB |
-| wazuh-indexer-03         | 192.168.90.114 | shared | 2 GB | 128 GB |
-| wazuh-manager-master     | 192.168.90.115 | shared | 2 GB | 128 GB |
-| wazuh-manager-worker-01  | 192.168.90.116 | shared | 2 GB | 128 GB |
-| wazuh-manager-worker-02  | 192.168.90.117 | shared | 2 GB | 128 GB |
-| wazuh-dashboard          | 192.168.90.118 | shared | 2 GB | 128 GB |
-| wazuh-lb-01              | 192.168.90.112 | shared | 2 GB | 128 GB |
+| VM               | IP              | vCPU   | RAM  | Disk   |
+|------------------|-----------------|--------|------|--------|
+| wazuh-indexer-01 | <INDEXER_01_IP> | shared | 2 GB | 128 GB |
+| wazuh-indexer-02 | <INDEXER_02_IP> | shared | 2 GB | 128 GB |
+| wazuh-indexer-03 | <INDEXER_03_IP> | shared | 2 GB | 128 GB |
+| wazuh-master-01  | <MASTER_IP>     | shared | 2 GB | 128 GB |
+| wazuh-worker-01  | <WORKER_01_IP>  | shared | 2 GB | 128 GB |
+| wazuh-worker-02  | <WORKER_02_IP>  | shared | 2 GB | 128 GB |
+| wazuh-dashboard  | <DASHBOARD_IP>  | shared | 2 GB | 128 GB |
+| wazuh-lb-01      | <LB_IP>         | shared | 2 GB | 128 GB |
 
 ### Constraint warning: 2 GB RAM is below the Wazuh recommended minimum
 
@@ -162,10 +162,10 @@ and worker nodes at 2 GB will boot and is fine for a low volume proof of concept
 expect memory pressure once ingestion rises or during search. Mandatory mitigations
 already applied in Stage 0:
 
-- **Swap**: 4 GB swapfile on every node, with `vm.swappiness=10` so swap is used only
+* **Swap**: 4 GB swapfile on every node, with `vm.swappiness=10` so swap is used only
   under pressure. This is a safety net against the out of memory killer terminating
   the indexer or manager, not a substitute for RAM.
-- **JVM heap**: set the indexer heap explicitly to about half of RAM and equal min and
+* **JVM heap**: set the indexer heap explicitly to about half of RAM and equal min and
   max. For 2 GB nodes use 1 GB heap. Edit `/etc/wazuh-indexer/jvm.options`:
   ```
   -Xms1g
@@ -173,7 +173,7 @@ already applied in Stage 0:
   ```
   Do the same caution for the Wazuh server JVM if you tune it; leave headroom for the
   OS and filesystem cache.
-- **vm.max_map_count=262144** on indexer nodes (required for OpenSearch to start).
+* **vm.max_map_count=262144** on indexer nodes (required for OpenSearch to start).
 
 If you can raise RAM later, prioritize the three indexer nodes first (to 4 GB), then
 the two workers. The dashboard and load balancer tolerate 2 GB more comfortably.
@@ -184,56 +184,56 @@ Suitable for a laptop or resource constrained host. The whole lab fits in roughl
 32 GB RAM if you are careful, but 48 to 64 GB is comfortable.
 
 
-| VM                      | vCPU | RAM  | Disk  | Notes                          |
-|-------------------------|------|------|-------|--------------------------------|
-| wazuh-indexer-01        | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
-| wazuh-indexer-02        | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
-| wazuh-indexer-03        | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
-| wazuh-manager-master    | 2    | 4 GB | 40 GB | Coordination, enrollment       |
-| wazuh-manager-worker-01 | 2    | 4 GB | 40 GB | Event analysis                 |
-| wazuh-manager-worker-02 | 2    | 4 GB | 40 GB | Event analysis                 |
-| wazuh-dashboard         | 2    | 4 GB | 30 GB | Node and OpenSearch Dashboards |
-| wazuh-lb-01             | 1    | 1 GB | 20 GB | HAProxy only                   |
-| win-agent-01            | 2    | 4 GB | 40 GB | Windows Server or 10/11        |
-| win-agent-02            | 2    | 4 GB | 40 GB | Windows Server or 10/11        |
-| linux-agent-01          | 1    | 2 GB | 20 GB | Ubuntu 22.04/24.04             |
-| linux-agent-02          | 1    | 2 GB | 20 GB | Ubuntu 22.04/24.04             |
+| VM               | vCPU | RAM  | Disk  | Notes                          |
+|------------------|------|------|-------|--------------------------------|
+| wazuh-indexer-01 | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
+| wazuh-indexer-02 | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
+| wazuh-indexer-03 | 2    | 4 GB | 50 GB | JVM heap 2 GB                  |
+| wazuh-master-01  | 2    | 4 GB | 40 GB | Coordination, enrollment       |
+| wazuh-worker-01  | 2    | 4 GB | 40 GB | Event analysis                 |
+| wazuh-worker-02  | 2    | 4 GB | 40 GB | Event analysis                 |
+| wazuh-dashboard  | 2    | 4 GB | 30 GB | Node and OpenSearch Dashboards |
+| wazuh-lb-01      | 1    | 1 GB | 20 GB | HAProxy only                   |
+| win-agent-01     | 2    | 4 GB | 40 GB | Windows Server or 10/11        |
+| win-agent-02     | 2    | 4 GB | 40 GB | Windows Server or 10/11        |
+| ubuntu-agent-01  | 1    | 2 GB | 20 GB | Ubuntu 22.04/24.04             |
+| ubuntu-agent-02  | 1    | 2 GB | 20 GB | Ubuntu 22.04/24.04             |
 
 ## 2.2 Profile B: Production like lab version
 
 Realistic for simulating an enterprise rollout and for index/shard testing under
 load.
 
-| VM                      | vCPU | RAM   | Disk       | Notes                             |
-|-------------------------|------|-------|------------|---------------------------------- |
-| wazuh-indexer-01        | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
-| wazuh-indexer-02        | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          | 
-| wazuh-indexer-03        | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
-| wazuh-manager-master    | 4    | 8 GB  | 100 GB     | Coordination, enrollment          |
-| wazuh-manager-worker-01 | 8    | 16 GB | 200 GB     | High event throughput             |
-| wazuh-manager-worker-02 | 8    | 16 GB | 200 GB     | High event throughput             |
-| wazuh-dashboard         | 4    | 8 GB  | 100 GB     | Dedicated, not on indexer         |
-| wazuh-lb-01             | 2    | 2 GB  | 40 GB      | HAProxy, lightweight but critical |
-| win-agent-01            | 2    | 4 GB  | 60 GB      | Windows endpoint                  |
-| win-agent-02            | 2    | 4 GB  | 60 GB      | Windows endpoint                  |
-| linux-agent-01          | 2    | 4 GB  | 40 GB      | Ubuntu endpoint                   |
-| linux-agent-02          | 2    | 4 GB  | 40 GB      | Ubuntu endpoint                   |
+| VM               | vCPU | RAM   | Disk       | Notes                             |
+|------------------|------|-------|------------|-----------------------------------|
+| wazuh-indexer-01 | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
+| wazuh-indexer-02 | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
+| wazuh-indexer-03 | 8    | 16 GB | 500 GB SSD | JVM heap 8 GB, data tier          |
+| wazuh-master-01  | 4    | 8 GB  | 100 GB     | Coordination, enrollment          |
+| wazuh-worker-01  | 8    | 16 GB | 200 GB     | High event throughput             |
+| wazuh-worker-02  | 8    | 16 GB | 200 GB     | High event throughput             |
+| wazuh-dashboard  | 4    | 8 GB  | 100 GB     | Dedicated, not on indexer         |
+| wazuh-lb-01      | 2    | 2 GB  | 40 GB      | HAProxy, lightweight but critical |
+| win-agent-01     | 2    | 4 GB  | 60 GB      | Windows endpoint                  |
+| win-agent-02     | 2    | 4 GB  | 60 GB      | Windows endpoint                  |
+| ubuntu-agent-01  | 2    | 4 GB  | 40 GB      | Ubuntu endpoint                   |
+| ubuntu-agent-02  | 2    | 4 GB  | 40 GB      | Ubuntu endpoint                   |
 
 ## 2.3 Sizing notes
 
-- The indexer needs the most disk and RAM. It stores all indexed data and runs a
+* The indexer needs the most disk and RAM. It stores all indexed data and runs a
   JVM whose heap should be roughly half the node RAM and never above about 26 to 32
   GB. Set heap equal on min and max in `jvm.options`.
-- Workers need enough CPU and RAM for event decoding and rule matching, since they
+* Workers need enough CPU and RAM for event decoding and rule matching, since they
   carry the agent event stream. Scale workers, not the master, when event volume
   grows.
-- The dashboard must not share a host with an indexer node in a production ready
+* The dashboard must not share a host with an indexer node in a production ready
   lab. Dashboard rendering and OpenSearch heap will contend for the same memory and
   IO and cause slow searches.
-- The load balancer is lightweight on CPU and RAM but is critical to availability.
+* The load balancer is lightweight on CPU and RAM but is critical to availability.
   If it dies, all agent enrollment and reporting stops. Consider a second HAProxy
   with keepalived for a real production design.
-- Disk on indexers should be SSD. Spinning disk will bottleneck indexing and search
+* Disk on indexers should be SSD. Spinning disk will bottleneck indexing and search
   latency once volume rises.
 
 ---
@@ -242,23 +242,23 @@ load.
 
 ## 3.1 Port matrix
 
-| Source                  | Destination             | Port      | Protocol | Function                                         | Required |
-|-------------------------|-------------------------|-----------|----------|--------------------------------------------------|----------|
-| Agents                  | wazuh-lb-01             | 1514      | TCP      | Agent event and keepalive reporting              | Required |
-| Agents                  | wazuh-lb-01             | 1515      | TCP      | Agent enrollment                                 | Required |
-| wazuh-lb-01             | wazuh-manager-master    | 1515      | TCP      | Enrollment forward to master                     | Required |
-| wazuh-lb-01             | wazuh-manager-worker-01 | 1514      | TCP      | Event forward to worker                          | Required |
-| wazuh-lb-01             | wazuh-manager-worker-02 | 1514      | TCP      | Event forward to worker                          | Required |
-| Server nodes            | Server nodes            | 1516      | TCP      | Wazuh server cluster communication               | Required |
-| Server nodes (Filebeat) | Indexer nodes           | 9200      | TCP      | Ship alerts to indexer                           | Required |
-| Indexer nodes           | Indexer nodes           | 9300-9400 | TCP      | Indexer inter node transport                     | Required |
-| wazuh-dashboard         | Server API (master)     | 55000     | TCP      | Management data                                  | Required |
-| wazuh-dashboard         | Indexer nodes           | 9200      | TCP      | Alert search                                     | Required |
-| Admin/User              | wazuh-dashboard         | 443       | TCP      | Dashboard HTTPS                                  | Required |
-| Admin                   | All Linux nodes         | 22        | TCP      | SSH administration                               | Optional |
-| Admin                   | Windows agents          | 3389      | TCP      | RDP administration                               | Optional |
-| Admin                   | Windows agents          | 5985/5986 | TCP      | WinRM (PowerShell Remoting)                      | Optional |
-| Agents                  | wazuh-manager-master    | 1514/1515 | TCP      | Direct failover if LB down (not used by default) | Optional |
+| Source                  | Destination         | Port      | Protocol | Function                                         | Required |
+|-------------------------|---------------------|-----------|----------|--------------------------------------------------|----------|
+| Agents                  | wazuh-lb-01         | 1514      | TCP      | Agent event and keepalive reporting              | Required |
+| Agents                  | wazuh-lb-01         | 1515      | TCP      | Agent enrollment                                 | Required |
+| wazuh-lb-01             | wazuh-master-01     | 1515      | TCP      | Enrollment forward to master                     | Required |
+| wazuh-lb-01             | wazuh-worker-01     | 1514      | TCP      | Event forward to worker                          | Required |
+| wazuh-lb-01             | wazuh-worker-02     | 1514      | TCP      | Event forward to worker                          | Required |
+| Server nodes            | Server nodes        | 1516      | TCP      | Wazuh server cluster communication               | Required |
+| Server nodes (Filebeat) | Indexer nodes       | 9200      | TCP      | Ship alerts to indexer                           | Required |
+| Indexer nodes           | Indexer nodes       | 9300-9400 | TCP      | Indexer inter node transport                     | Required |
+| wazuh-dashboard         | Server API (master) | 55000     | TCP      | Management data                                  | Required |
+| wazuh-dashboard         | Indexer nodes       | 9200      | TCP      | Alert search                                     | Required |
+| Admin/User              | wazuh-dashboard     | 443       | TCP      | Dashboard HTTPS                                  | Required |
+| Admin                   | All Linux nodes     | 22        | TCP      | SSH administration                               | Optional |
+| Admin                   | Windows agents      | 3389      | TCP      | RDP administration                               | Optional |
+| Admin                   | Windows agents      | 5985/5986 | TCP      | WinRM (PowerShell Remoting)                      | Optional |
+| Agents                  | wazuh-master-01     | 1514/1515 | TCP      | Direct failover if LB down (not used by default) | Optional |
 
 Notes on the API port: the dashboard connects to the Wazuh server API on 55000. In a
 cluster the API runs on every node; point the dashboard at the master for a stable
@@ -323,11 +323,11 @@ If you prefer raw iptables instead of UFW on the indexers:
 # Allow established
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 # Indexer HTTP API (restrict to server cluster + dashboard + other indexers)
-iptables -A INPUT -p tcp --dport 9200 -s 192.168.90.0/24 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9200 -s <SUBNET> -j ACCEPT
 # Indexer transport between indexer nodes only
-iptables -A INPUT -p tcp --dport 9300:9400 -s 192.168.90.111 -j ACCEPT
-iptables -A INPUT -p tcp --dport 9300:9400 -s 192.168.90.113 -j ACCEPT
-iptables -A INPUT -p tcp --dport 9300:9400 -s 192.168.90.114 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9300:9400 -s <INDEXER_01_IP> -j ACCEPT
+iptables -A INPUT -p tcp --dport 9300:9400 -s <INDEXER_02_IP> -j ACCEPT
+iptables -A INPUT -p tcp --dport 9300:9400 -s <INDEXER_03_IP> -j ACCEPT
 # SSH
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 # Loopback
@@ -337,7 +337,7 @@ iptables -P INPUT DROP
 ```
 
 Tighten the source addresses to the actual subnet in production. In this lab all
-nodes share `192.168.90.0/24`.
+nodes share `<SUBNET>`.
 
 ---
 
@@ -347,38 +347,38 @@ Complete every item before installing any Wazuh package.
 
 ## 4.1 Checklist
 
-- [ ] **OS baseline**: Ubuntu 22.04/24.04 LTS on all Linux nodes, fully updated
+* [ ] **OS baseline**: Ubuntu 22.04/24.04 LTS on all Linux nodes, fully updated
       (`apt update && apt upgrade`). Windows Server 2019/2022 or Windows 10/11 on
       agents.
-- [ ] **Hostname**: set each node hostname to match the topology
+* [ ] **Hostname**: set each node hostname to match the topology
       (`hostnamectl set-hostname wazuh-indexer-01`).
-- [ ] **Static IP**: assign the fixed IP from the topology table to each node.
-- [ ] **DNS or /etc/hosts**: every node must resolve every other node by FQDN. Use
+* [ ] **Static IP**: assign the fixed IP from the topology table to each node.
+* [ ] **DNS or /etc/hosts**: every node must resolve every other node by FQDN. Use
       the shared `/etc/hosts` below if you have no internal DNS.
-- [ ] **NTP / time sync**: enable `systemd-timesyncd` or chrony on all nodes. Clock
+* [ ] **NTP / time sync**: enable `systemd-timesyncd` or chrony on all nodes. Clock
       drift breaks TLS and cluster sync.
-- [ ] **Firewall**: open the ports from section 3 before install, or temporarily
+* [ ] **Firewall**: open the ports from section 3 before install, or temporarily
       disable and re enable after.
-- [ ] **Package dependencies**: `curl`, `apt-transport-https`, `gnupg`, `lsb-release`
+* [ ] **Package dependencies**: `curl`, `apt-transport-https`, `gnupg`, `lsb-release`
       on Linux nodes.
-- [ ] **Certificate planning**: decide node names now; they must match the cert
+* [ ] **Certificate planning**: decide node names now; they must match the cert
       common names. Generate certs centrally on one node and copy out.
-- [ ] **Disk planning**: confirm indexer data path has the planned disk; mount a
+* [ ] **Disk planning**: confirm indexer data path has the planned disk; mount a
       separate volume on `/var/lib/wazuh-indexer` if possible.
-- [ ] **VM snapshot**: snapshot every VM in a clean post OS state before installing
+* [ ] **VM snapshot**: snapshot every VM in a clean post OS state before installing
       Wazuh. This is your rollback point.
-- [ ] **Internet access / repo**: nodes can reach `packages.wazuh.com` or you have a
+* [ ] **Internet access / repo**: nodes can reach `packages.wazuh.com` or you have a
       local mirror for offline install.
-- [ ] **User privilege / sudo**: an admin user with sudo on every Linux node.
-- [ ] **SSH access between nodes**: at least from the node you run cert generation
+* [ ] **User privilege / sudo**: an admin user with sudo on every Linux node.
+* [ ] **SSH access between nodes**: at least from the node you run cert generation
       and Ansible on, to all others, ideally key based.
-- [ ] **Browser access**: a workstation that can reach
+* [ ] **Browser access**: a workstation that can reach
       `https://wazuh-dashboard.lab.local` on 443.
-- [ ] **Validate ports between nodes**: test reachability before install with
+* [ ] **Validate ports between nodes**: test reachability before install with
       `nc -vz <host> <port>`.
-- [ ] **Enrollment password planning**: decide whether to enable an enrollment
+* [ ] **Enrollment password planning**: decide whether to enable an enrollment
       password. If yes, set it on the master and distribute via `WAZUH_REGISTRATION_PASSWORD`.
-- [ ] **Backup directory planning**: decide the snapshot repository path and a config
+* [ ] **Backup directory planning**: decide the snapshot repository path and a config
       backup location (see section 15-I).
 
 ## 4.2 Shared /etc/hosts for all Linux servers
@@ -389,32 +389,32 @@ Place this in `/etc/hosts` on every Linux node (also see `configs/shared/hosts`)
 127.0.0.1   localhost
 
 # Wazuh indexer cluster
-192.168.90.111 wazuh-indexer-01.lab.local wazuh-indexer-01
-192.168.90.113 wazuh-indexer-02.lab.local wazuh-indexer-02
-192.168.90.114 wazuh-indexer-03.lab.local wazuh-indexer-03
+<INDEXER_01_IP> wazuh-indexer-01.lab.local wazuh-indexer-01
+<INDEXER_02_IP> wazuh-indexer-02.lab.local wazuh-indexer-02
+<INDEXER_03_IP> wazuh-indexer-03.lab.local wazuh-indexer-03
 
 # Wazuh server cluster
-192.168.90.115 wazuh-master-01.lab.local wazuh-master-01
-192.168.90.116 wazuh-worker-01.lab.local wazuh-worker-01
-192.168.90.117 wazuh-worker-02.lab.local wazuh-worker-02
+<MASTER_IP> wazuh-master-01.lab.local wazuh-master-01
+<WORKER_01_IP> wazuh-worker-01.lab.local wazuh-worker-01
+<WORKER_02_IP> wazuh-worker-02.lab.local wazuh-worker-02
 
 # Dashboard and load balancer
-192.168.90.118 wazuh-dashboard.lab.local wazuh-dashboard-01
-192.168.90.112 wazuh-lb.lab.local wazuh-lb-01
+<DASHBOARD_IP> wazuh-dashboard.lab.local wazuh-dashboard-01
+<LB_IP> wazuh-lb.lab.local wazuh-lb-01
 
 # Endpoints
-192.168.90.121 windows-ad-dc.lab.local windows-ad-dc
-192.168.90.122 win-agent-01.lab.local win-agent-01
-192.168.90.123 win-agent-02.lab.local win-agent-02
-192.168.90.119 ubuntu-agent-01.lab.local ubuntu-agent-01
-192.168.90.120 ubuntu-agent-02.lab.local ubuntu-agent-02
+<AD_DC_IP> windows-ad-dc.lab.local windows-ad-dc
+<WIN_AGENT_01_IP> win-agent-01.lab.local win-agent-01
+<WIN_AGENT_02_IP> win-agent-02.lab.local win-agent-02
+<UBUNTU_AGENT_01_IP> ubuntu-agent-01.lab.local ubuntu-agent-01
+<UBUNTU_AGENT_02_IP> ubuntu-agent-02.lab.local ubuntu-agent-02
 ```
 
 On Windows agents add the same entries to
 `C:\Windows\System32\drivers\etc\hosts`, at minimum the load balancer line:
 
 ```
-192.168.90.112 wazuh-lb.lab.local
+<LB_IP> wazuh-lb.lab.local
 ```
 
 ## 4.3 Stage 0 executed procedures (this lab)
@@ -431,14 +431,14 @@ sudo apt update && sudo apt upgrade -y
 ### Step 2: Set hostname (per node)
 
 ```bash
-sudo hostnamectl set-hostname wazuh-indexer-01   # 192.168.90.111
-sudo hostnamectl set-hostname wazuh-indexer-02   # 192.168.90.113
-sudo hostnamectl set-hostname wazuh-indexer-03   # 192.168.90.114
-sudo hostnamectl set-hostname wazuh-master-01    # 192.168.90.115
-sudo hostnamectl set-hostname wazuh-worker-01    # 192.168.90.116
-sudo hostnamectl set-hostname wazuh-worker-02    # 192.168.90.117
-sudo hostnamectl set-hostname wazuh-lb-01        # 192.168.90.112
-sudo hostnamectl set-hostname wazuh-dashboard-01 # 192.168.90.118
+sudo hostnamectl set-hostname wazuh-indexer-01   # <INDEXER_01_IP>
+sudo hostnamectl set-hostname wazuh-indexer-02   # <INDEXER_02_IP>
+sudo hostnamectl set-hostname wazuh-indexer-03   # <INDEXER_03_IP>
+sudo hostnamectl set-hostname wazuh-master-01    # <MASTER_IP>
+sudo hostnamectl set-hostname wazuh-worker-01    # <WORKER_01_IP>
+sudo hostnamectl set-hostname wazuh-worker-02    # <WORKER_02_IP>
+sudo hostnamectl set-hostname wazuh-lb-01        # <LB_IP>
+sudo hostnamectl set-hostname wazuh-dashboard-01 # <DASHBOARD_IP>
 ```
 
 ### Step 3: /etc/hosts (append on every node)
@@ -447,14 +447,14 @@ sudo hostnamectl set-hostname wazuh-dashboard-01 # 192.168.90.118
 sudo tee -a /etc/hosts <<'EOF'
 
 # Wazuh lab nodes
-192.168.90.111  wazuh-indexer-01.lab.local  wazuh-indexer-01
-192.168.90.113  wazuh-indexer-02.lab.local  wazuh-indexer-02
-192.168.90.114  wazuh-indexer-03.lab.local  wazuh-indexer-03
-192.168.90.115  wazuh-master-01.lab.local   wazuh-master-01
-192.168.90.116  wazuh-worker-01.lab.local   wazuh-worker-01
-192.168.90.117  wazuh-worker-02.lab.local   wazuh-worker-02
-192.168.90.112  wazuh-lb.lab.local          wazuh-lb-01
-192.168.90.118  wazuh-dashboard.lab.local   wazuh-dashboard-01
+<INDEXER_01_IP>  wazuh-indexer-01.lab.local  wazuh-indexer-01
+<INDEXER_02_IP>  wazuh-indexer-02.lab.local  wazuh-indexer-02
+<INDEXER_03_IP>  wazuh-indexer-03.lab.local  wazuh-indexer-03
+<MASTER_IP>  wazuh-master-01.lab.local   wazuh-master-01
+<WORKER_01_IP>  wazuh-worker-01.lab.local   wazuh-worker-01
+<WORKER_02_IP>  wazuh-worker-02.lab.local   wazuh-worker-02
+<LB_IP>  wazuh-lb.lab.local          wazuh-lb-01
+<DASHBOARD_IP>  wazuh-dashboard.lab.local   wazuh-dashboard-01
 EOF
 ```
 
@@ -542,9 +542,9 @@ sudo ufw --force enable
 
 From wazuh-master-01:
 ```bash
-nc -vz 192.168.90.111 22   # use port 22 before Wazuh is installed
-nc -vz 192.168.90.113 22
-nc -vz 192.168.90.114 22
+nc -vz <INDEXER_01_IP> 22   # use port 22 before Wazuh is installed
+nc -vz <INDEXER_02_IP> 22
+nc -vz <INDEXER_03_IP> 22
 ```
 
 Note: before Wazuh packages are installed, ports like 9200, 1514, 1515, and 443
@@ -592,25 +592,25 @@ The order below is deliberate. Each stage depends on the one before it being hea
 
 ## Why this order matters
 
-- **Certificates first (step 5).** Every component (indexer, server, dashboard,
+* **Certificates first (step 5).** Every component (indexer, server, dashboard,
   Filebeat) relies on the same certificate authority. Generating all certs up front
   avoids mismatched CAs that block cluster join and Filebeat shipping.
-- **Indexer before server (steps 6 to 8).** The server's Filebeat ships alerts to
+* **Indexer before server (steps 6 to 8).** The server's Filebeat ships alerts to
   the indexer. If the indexer cluster is not healthy first, Filebeat has nowhere to
   send data and you will chase false alarms.
-- **Server cluster before dashboard (steps 9 to 12).** The dashboard reads the
+* **Server cluster before dashboard (steps 9 to 12).** The dashboard reads the
   server API and the indexer. Standing up the server cluster first means the
   dashboard has both backends ready at first login.
-- **Load balancer before agents (steps 15 to 16).** Agents are configured to enroll
+* **Load balancer before agents (steps 15 to 16).** Agents are configured to enroll
   and report only through the load balancer. If the LB is not forwarding correctly,
   enrollment fails and you cannot tell whether the problem is the agent, the LB, or
   the server.
-- **Groups and centralized config before agent deployment (steps 17 to 18).** The
+* **Groups and centralized config before agent deployment (steps 17 to 18).** The
   `windows` and `linux` groups must exist before mass deployment so that
   `WAZUH_AGENT_GROUP` lands each agent in the right group on first enrollment and
   immediately receives the correct `agent.conf`.
-- **Validate ingestion before index management (steps 22 to 24).** Confirm real data
+* **Validate ingestion before index management (steps 22 to 24).** Confirm real data
   flows end to end before you start applying retention, rollover, and shard policies,
   so you are tuning against actual indices.
-- **Snapshots last but not optional (step 25).** Once data and configuration exist,
+* **Snapshots last but not optional (step 25).** Once data and configuration exist,
   protect them. The indexer cluster is not a backup of itself.

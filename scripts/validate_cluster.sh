@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Quick end to end validation for the Wazuh multi node lab.
-# Usage: INDEXER=192.168.90.111 PASS=yourpass ./validate-cluster.sh
+# Usage: INDEXER=<INDEXER_01_IP> PASS=yourpass ./validate-cluster.sh
 set -u
-INDEXER="${INDEXER:-192.168.90.111}"
+INDEXER="${INDEXER:-<INDEXER_01_IP>}"
 PASS="${PASS:-admin}"
 USER="${USER_IDX:-admin}"
 
@@ -26,7 +26,7 @@ echo "  sudo /var/ossec/bin/cluster_control -l"
 echo "  sudo /var/ossec/bin/cluster_control -a"
 
 echo "== Wazuh API health (run on master, must return a token) =="
-MASTER="${MASTER:-192.168.90.115}"
+MASTER="${MASTER:-<MASTER_IP>}"
 echo "  Testing API authenticate on $MASTER:55000 ..."
 curl -sk -u wazuh-wui:wazuh-wui -X POST \
   "https://$MASTER:55000/security/user/authenticate" \

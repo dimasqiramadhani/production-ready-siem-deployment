@@ -2,10 +2,10 @@
 setlocal
 set LOGFILE=C:\Windows\Temp\wazuh-agent-install.log
 set MSI=\\windows-ad-dc\Software\Wazuh\wazuh-agent.msi
-set WAZUH_MANAGER=192.168.90.112
-set WAZUH_REGISTRATION_SERVER=192.168.90.112
+set WAZUH_MANAGER=<LB_IP>
+set WAZUH_REGISTRATION_SERVER=<LB_IP>
 set WAZUH_AGENT_GROUP=windows
-set WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!
+set WAZUH_REGISTRATION_PASSWORD=<ENROLLMENT_PASSWORD>
 
 echo [%DATE% %TIME%] Starting Wazuh agent deployment >> "%LOGFILE%"
 

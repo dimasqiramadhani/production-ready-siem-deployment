@@ -16,10 +16,10 @@ Invoke-Command -ComputerName $targets -Credential $cred -ScriptBlock {
 
         $args = @(
             "/i", $local, "/q",
-            "WAZUH_MANAGER=192.168.90.112",
-            "WAZUH_REGISTRATION_SERVER=192.168.90.112",
+            "WAZUH_MANAGER=<LB_IP>",
+            "WAZUH_REGISTRATION_SERVER=<LB_IP>",
             "WAZUH_AGENT_GROUP=windows",
-            "WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!"
+            "WAZUH_REGISTRATION_PASSWORD=<ENROLLMENT_PASSWORD>"
         )
         $p = Start-Process msiexec.exe -ArgumentList $args -Wait -PassThru
         "$(Get-Date) msiexec exit $($p.ExitCode)" | Out-File -Append $log

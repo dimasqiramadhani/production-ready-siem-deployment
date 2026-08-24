@@ -58,21 +58,21 @@ agent was missed, assign it by ID:
 ```bash
 /var/ossec/bin/agent_groups -l -g windows
 # or via the API
-curl -k -u wazuh-wui:<PASSWORD> "https://192.168.90.115:55000/agents?group=windows&pretty" \
+curl -k -u wazuh-wui:<INDEXER_ADMIN_PASSWORD> "https://<MASTER_IP>:55000/agents?group=windows&pretty" \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
 ## 10.7 Notes
 
-- Create the groups before mass deployment if you want agents to use
+* Create the groups before mass deployment if you want agents to use
   `WAZUH_AGENT_GROUP=windows` or `WAZUH_AGENT_GROUP=linux` at enrollment. If the
   group does not exist at enrollment time the agent falls into `default` and you must
   reassign it.
-- Groups drive centralized configuration. Every agent in a group receives that
+* Groups drive centralized configuration. Every agent in a group receives that
   group's `agent.conf`.
-- Rules are never sent to agents. Rules and decoders stay on the manager. Groups only
+* Rules are never sent to agents. Rules and decoders stay on the manager. Groups only
   control what the agent collects and runs, not how events are analyzed.
-- Run all `agent_groups` commands on the master. Group files synchronize to the
+* Run all `agent_groups` commands on the master. Group files synchronize to the
   workers automatically.
 
 ---
@@ -84,8 +84,8 @@ the group. Reference:
 https://documentation.wazuh.com/current/user-manual/reference/centralized-configuration.html
 
 Files:
-- `/var/ossec/etc/shared/windows/agent.conf`
-- `/var/ossec/etc/shared/linux/agent.conf`
+* `/var/ossec/etc/shared/windows/agent.conf`
+* `/var/ossec/etc/shared/linux/agent.conf`
 
 Edit these on the master. The master detects the change and distributes it to agents
 on their next keepalive (default 10 seconds). With agent config hot reload (4.14),
@@ -93,7 +93,7 @@ agents apply the new config without dropping their connection.
 
 ## 11.1 Windows group agent.conf
 
-Full file in `configs/agents/agent-windows.conf`. Collects Windows Security, System, and
+Full file in `configs/agents/agent_windows.conf`. Collects Windows Security, System, and
 Application channels, optional Sysmon, and tags the asset.
 
 ```xml
@@ -130,7 +130,7 @@ Application channels, optional Sysmon, and tags the asset.
 
 ## 11.2 Linux group agent.conf
 
-Full file in `configs/agents/agent-linux.conf`. Collects auth and syslog, optional auditd,
+Full file in `configs/agents/agent_linux.conf`. Collects auth and syslog, optional auditd,
 and tags the asset.
 
 ```xml
@@ -199,9 +199,9 @@ You can also confirm group sync status from the manager:
 
 ## 11.6 Notes
 
-- `agent.conf` controls what the agent collects and runs. Rules and decoders stay on
+* `agent.conf` controls what the agent collects and runs. Rules and decoders stay on
   the manager.
-- In a cluster, always build the config on the master node so it propagates to
+* In a cluster, always build the config on the master node so it propagates to
   workers and out to agents.
 
 ---
@@ -215,8 +215,8 @@ https://documentation.wazuh.com/current/user-manual/ruleset/
 
 ## 12.1 File locations
 
-- Custom rules: `/var/ossec/etc/rules/`
-- Custom decoders: `/var/ossec/etc/decoders/`
+* Custom rules: `/var/ossec/etc/rules/`
+* Custom decoders: `/var/ossec/etc/decoders/`
 
 Example structure (files provided in `configs/`):
 
@@ -341,9 +341,9 @@ The Windows side of the lab is built around a small Active Directory domain so t
 Wazuh agent can be rolled out to every Windows machine at once, the same pattern used
 across a real fleet. Three Windows Server 2022 VMs:
 
-- windows-ad-dc (192.168.90.121): Active Directory domain controller and DNS, domain lab.local
-- win-agent-01 (192.168.90.122): domain member, agent target, group windows
-- win-agent-02 (192.168.90.123): domain member, agent target, group windows
+* windows-ad-dc (<AD_DC_IP>): Active Directory domain controller and DNS, domain lab.local
+* win-agent-01 (<WIN_AGENT_01_IP>): domain member, agent target, group windows
+* win-agent-02 (<WIN_AGENT_02_IP>): domain member, agent target, group windows
 
 The idea is simple. Instead of logging into each Windows box and installing the agent
 by hand, you publish the installer once, define a Group Policy startup script once, and
@@ -352,17 +352,17 @@ its next reboot. Add more machines to the domain later and they pick up the same
 with no extra work.
 
 Common deployment variables (all enrollment goes through the load balancer):
-- `WAZUH_MANAGER=192.168.90.112`
-- `WAZUH_REGISTRATION_SERVER=192.168.90.112`
-- `WAZUH_AGENT_GROUP=windows`
-- `WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!`
+* `WAZUH_MANAGER=<LB_IP>`
+* `WAZUH_REGISTRATION_SERVER=<LB_IP>`
+* `WAZUH_AGENT_GROUP=windows`
+* `WAZUH_REGISTRATION_PASSWORD=<ENROLLMENT_PASSWORD>`
 
 The `windows` group must already exist on the manager (section 10) so agents land
 there automatically at enrollment.
 
 ## 13.1 Promote the domain controller
 
-On windows-ad-dc, with the static IP 192.168.90.121 already set, open PowerShell as
+On windows-ad-dc, with the static IP <AD_DC_IP> already set, open PowerShell as
 Administrator.
 
 Set the hostname and reboot:
@@ -403,7 +403,7 @@ Resolve-DnsName lab.local
 Get-SmbShare | Where-Object { $_.Name -eq "SYSVOL" -or $_.Name -eq "NETLOGON" }
 ```
 
-DNSRoot should be lab.local, lab.local should resolve to 192.168.90.121, and both
+DNSRoot should be lab.local, lab.local should resolve to <AD_DC_IP>, and both
 SYSVOL and NETLOGON shares should be present.
 
 ## 13.2 Create the OU and installer share
@@ -458,10 +458,10 @@ $scriptContent = @'
 setlocal
 set LOGFILE=C:\Windows\Temp\wazuh-agent-install.log
 set MSI=\\windows-ad-dc\Software\Wazuh\wazuh-agent.msi
-set WAZUH_MANAGER=192.168.90.112
-set WAZUH_REGISTRATION_SERVER=192.168.90.112
+set WAZUH_MANAGER=<LB_IP>
+set WAZUH_REGISTRATION_SERVER=<LB_IP>
 set WAZUH_AGENT_GROUP=windows
-set WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!
+set WAZUH_REGISTRATION_PASSWORD=<ENROLLMENT_PASSWORD>
 
 echo [%DATE% %TIME%] Starting Wazuh agent deployment >> "%LOGFILE%"
 
@@ -490,7 +490,7 @@ echo [%DATE% %TIME%] Done >> "%LOGFILE%"
 endlocal
 '@
 
-$scriptContent | Out-File -FilePath (Join-Path $scriptsPath "install-wazuh-agent.bat") -Encoding ASCII
+$scriptContent | Out-File -FilePath (Join-Path $scriptsPath "install_wazuh_agent.bat") -Encoding ASCII
 ```
 
 Register the script as a machine startup script and link the GPO to the OU:
@@ -501,7 +501,7 @@ $iniPath = "\\windows-ad-dc\SYSVOL\lab.local\Policies\{$gpoId}\Machine\Scripts\s
 
 @"
 [Startup]
-0CmdLine=install-wazuh-agent.bat
+0CmdLine=install_wazuh_agent.bat
 0Parameters=
 "@ | Out-File -FilePath $iniPath -Encoding Unicode
 
@@ -528,7 +528,7 @@ ComputerVersion should now report AD Version 1, SysVol Version 1.
 
 ## 13.4 Prepare each Windows agent before joining
 
-Do this on win-agent-01 (192.168.90.122) and win-agent-02 (192.168.90.123). Set
+Do this on win-agent-01 (<WIN_AGENT_01_IP>) and win-agent-02 (<WIN_AGENT_02_IP>). Set
 everything up before the domain join so the machine is reachable by RDP and WinRM the
 moment it comes back on the domain.
 
@@ -548,7 +548,7 @@ and allow RDP with a plain login:
 ```powershell
 $adapter = Get-NetAdapter | Where-Object { $_.Status -eq "Up" }
 Set-DnsClientServerAddress -InterfaceIndex $adapter.InterfaceIndex `
-  -ServerAddresses ("192.168.90.121")
+  -ServerAddresses ("<AD_DC_IP>")
 
 Enable-PSRemoting -Force
 
@@ -559,7 +559,7 @@ Set-ItemProperty `
 Resolve-DnsName lab.local
 ```
 
-lab.local must resolve to 192.168.90.121 before the join.
+lab.local must resolve to <AD_DC_IP> before the join.
 
 ## 13.5 Join the domain
 
@@ -618,11 +618,11 @@ their traffic is spread across the workers just like the Linux agents.
 
 ## Notes
 
-- Keep computer names to 15 characters or fewer. A longer name is silently truncated
+* Keep computer names to 15 characters or fewer. A longer name is silently truncated
   by NetBIOS, which breaks the match between the machine and its AD account.
-- Set DNS to the domain controller before joining. The join and all later Kerberos
+* Set DNS to the domain controller before joining. The join and all later Kerberos
   authentication depend on resolving lab.local through the DC.
-- Turning on Remote Management and relaxing the RDP login requirement before the join
+* Turning on Remote Management and relaxing the RDP login requirement before the join
   keeps the machine reachable as soon as it returns on the domain.
 
 ## Method B: PowerShell Remoting (no Active Directory)
@@ -631,7 +631,7 @@ For a smaller environment without a domain, the same install can be driven over
 WinRM from a single admin workstation. The logic is identical, only the trigger
 changes from a GPO startup script to a remote invocation.
 
-`scripts/Deploy-WazuhAgent.ps1`:
+`scripts/deploy_wazuh_agent.ps1`:
 
 ```powershell
 $targets = @("win-agent-01.lab.local", "win-agent-02.lab.local")
@@ -643,10 +643,10 @@ foreach ($t in $targets) {
         if (-not (Get-Service WazuhSvc -ErrorAction SilentlyContinue)) {
             $args = @(
                 "/i", $msi, "/q",
-                "WAZUH_MANAGER=192.168.90.112",
-                "WAZUH_REGISTRATION_SERVER=192.168.90.112",
+                "WAZUH_MANAGER=<LB_IP>",
+                "WAZUH_REGISTRATION_SERVER=<LB_IP>",
                 "WAZUH_AGENT_GROUP=windows",
-                "WAZUH_REGISTRATION_PASSWORD=WazuhEnroll2024!"
+                "WAZUH_REGISTRATION_PASSWORD=<ENROLLMENT_PASSWORD>"
             )
             Start-Process msiexec.exe -ArgumentList $args -Wait
         }
@@ -661,26 +661,26 @@ Validate the same way from the manager with agent_control -l.
 
 # 14. Ubuntu Linux Agent Mass Deployment with Ansible
 
-Two Ubuntu endpoints: ubuntu-agent-01 (192.168.90.119), ubuntu-agent-02
-(192.168.90.120). Deployed with Ansible, all enrollment variables pointing at the load
+Two Ubuntu endpoints: ubuntu-agent-01 (<UBUNTU_AGENT_01_IP>), ubuntu-agent-02
+(<UBUNTU_AGENT_02_IP>). Deployed with Ansible, all enrollment variables pointing at the load
 balancer.
 
 Deployment variables:
-- `WAZUH_MANAGER=192.168.90.112` (LB IP)
-- `WAZUH_REGISTRATION_SERVER=192.168.90.112` (LB IP)
-- `WAZUH_AGENT_GROUP=linux`
-- `WAZUH_REGISTRATION_PASSWORD=<password>` (only if enrollment password enabled)
+* `WAZUH_MANAGER=<LB_IP>` (LB IP)
+* `WAZUH_REGISTRATION_SERVER=<LB_IP>` (LB IP)
+* `WAZUH_AGENT_GROUP=linux`
+* `WAZUH_REGISTRATION_PASSWORD=<password>` (only if enrollment password enabled)
 
 The `linux` group must already exist (section 10).
 
-All four files below are also in `configs/ansible/`.
+All four files below are also in `configs/agents/ansible/`.
 
 ## 14.1 inventory.ini
 
 ```ini
 [linux_agents]
-ubuntu-agent-01 ansible_host=192.168.90.119
-ubuntu-agent-02 ansible_host=192.168.90.120
+ubuntu-agent-01 ansible_host=<UBUNTU_AGENT_01_IP>
+ubuntu-agent-02 ansible_host=<UBUNTU_AGENT_02_IP>
 
 [linux_agents:vars]
 ansible_user=root
@@ -704,14 +704,14 @@ become_method = sudo
 ## 14.3 group_vars/linux_agents.yml
 
 ```yaml
-wazuh_manager: "192.168.90.112"
-wazuh_registration_server: "192.168.90.112"
+wazuh_manager: "<LB_IP>"
+wazuh_registration_server: "<LB_IP>"
 wazuh_agent_group: "linux"
-wazuh_registration_password: "WazuhEnroll2024!"
+wazuh_registration_password: "<ENROLLMENT_PASSWORD>"
 wazuh_agent_version: "4.14.5-1"
 ```
 
-## 14.4 install-wazuh-agent.yml
+## 14.4 install_wazuh_agent.yml
 
 ```yaml
 ---
@@ -782,7 +782,7 @@ wazuh_agent_version: "4.14.5-1"
 ansible -i inventory.ini linux_agents -m ping
 
 # Deploy
-ansible-playbook -i inventory.ini install-wazuh-agent.yml
+ansible-playbook -i inventory.ini install_wazuh_agent.yml
 ```
 
 ## 14.6 Linux validation commands
@@ -792,8 +792,8 @@ Run on each Ubuntu endpoint:
 ```bash
 systemctl status wazuh-agent
 tail -f /var/ossec/logs/ossec.log
-nc -vz 192.168.90.112 1514
-nc -vz 192.168.90.112 1515
+nc -vz <LB_IP> 1514
+nc -vz <LB_IP> 1515
 ```
 
 Healthy result: service active (running), ossec.log shows successful enrollment via

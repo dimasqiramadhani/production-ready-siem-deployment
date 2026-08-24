@@ -7,30 +7,30 @@ the dashboard, and the HAProxy load balancer. Deploy in this order.
 
 # 6. Wazuh Indexer Cluster Deployment
 
-Three indexer nodes: wazuh-indexer-01 (192.168.90.111), wazuh-indexer-02 (192.168.90.113),
-wazuh-indexer-03 (192.168.90.114). Reference:
+Three indexer nodes: wazuh-indexer-01 (<INDEXER_01_IP>), wazuh-indexer-02 (<INDEXER_02_IP>),
+wazuh-indexer-03 (<INDEXER_03_IP>). Reference:
 https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/
 
 ## 6.1 Concepts
 
-- **Certificate**: all indexer nodes share a common root CA. Each node has its own
+* **Certificate**: all indexer nodes share a common root CA. Each node has its own
   node certificate whose common name matches its node name. There is also an admin
   certificate used to run the security init. The node certificate CN and CA must match
   across all nodes for them to form one cluster.
-- **Cluster name**: `cluster.name` must be identical on all three nodes
+* **Cluster name**: `cluster.name` must be identical on all three nodes
   (`wazuh-cluster`) so they form a single cluster.
-- **Node name**: `node.name` must be unique per node and must match the CN in that
+* **Node name**: `node.name` must be unique per node and must match the CN in that
   node's certificate and the entry in `plugins.security.nodes_dn`.
 
 ## 6.2 Certificate generation (run once, on wazuh-indexer-01)
 
 Use the Wazuh certificate tool with a `config.yml` describing all nodes. See
-`configs/shared/wazuh-install-config.yml` for the full file. Then:
+`configs/shared/wazuh_install_config.yml` for the full file. Then:
 
 ```bash
 # Download tool and config
 curl -sO https://packages.wazuh.com/4.14/wazuh-certs-tool.sh
-curl -sO https://packages.wazuh.com/4.14/config.yml   # then edit to match configs/shared/wazuh-install-config.yml
+curl -sO https://packages.wazuh.com/4.14/config.yml   # then edit to match configs/shared/wazuh_install_config.yml
 bash ./wazuh-certs-tool.sh -A
 # Produces wazuh-certificates.tar in ./wazuh-certificates/
 tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
@@ -57,10 +57,10 @@ sudo apt -y install wazuh-indexer=4.14.5-1
 ## 6.4 Key configuration file: /etc/wazuh-indexer/opensearch.yml
 
 Example for wazuh-indexer-01 (full files for all three in
-`configs/opensearch-indexer-0X.yml`):
+`configs/indexer/`, one file per node):
 
 ```yaml
-network.host: "192.168.90.111"
+network.host: "<INDEXER_01_IP>"
 node.name: "wazuh-indexer-01"
 cluster.name: "wazuh-cluster"
 node.max_local_storage_nodes: "3"
@@ -68,9 +68,9 @@ path.data: /var/lib/wazuh-indexer
 path.logs: /var/log/wazuh-indexer
 
 discovery.seed_hosts:
-  - "192.168.90.111"
-  - "192.168.90.113"
-  - "192.168.90.114"
+  - "<INDEXER_01_IP>"
+  - "<INDEXER_02_IP>"
+  - "<INDEXER_03_IP>"
 
 cluster.initial_master_nodes:
   - "wazuh-indexer-01"
@@ -120,7 +120,7 @@ and max avoids runtime resizing.
 
 ## 6.5b Create the snapshot repository directory (each node)
 
-The indexer config (`configs/opensearch-indexer-0X.yml`) already declares
+The indexer config in `configs/indexer/` already declares
 `path.repo: ["/mnt/wazuh-snapshots"]`. Create that directory and set ownership on
 every indexer node now, before first start, so the snapshot repository in section 15
 works without any later restart:
@@ -153,19 +153,19 @@ Replace credentials as needed; default is `admin` with the generated password.
 
 ```bash
 # Cluster health
-curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cluster/health?pretty"
+curl -k -u admin:<INDEXER_ADMIN_PASSWORD> "https://<INDEXER_01_IP>:9200/_cluster/health?pretty"
 
 # Nodes in the cluster
-curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/nodes?v"
+curl -k -u admin:<INDEXER_ADMIN_PASSWORD> "https://<INDEXER_01_IP>:9200/_cat/nodes?v"
 
 # Indices
-curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/indices?v"
+curl -k -u admin:<INDEXER_ADMIN_PASSWORD> "https://<INDEXER_01_IP>:9200/_cat/indices?v"
 
 # Shards
-curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/shards?v"
+curl -k -u admin:<INDEXER_ADMIN_PASSWORD> "https://<INDEXER_01_IP>:9200/_cat/shards?v"
 
 # Allocation per node
-curl -k -u admin:<PASSWORD> "https://192.168.90.111:9200/_cat/allocation?v"
+curl -k -u admin:<INDEXER_ADMIN_PASSWORD> "https://<INDEXER_01_IP>:9200/_cat/allocation?v"
 ```
 
 Healthy result: `status` is green, `number_of_nodes` is 3, `unassigned_shards` is 0,
@@ -175,8 +175,8 @@ and `_cat/nodes` lists all three with one marked cluster_manager.
 
 # 7. Wazuh Server Cluster Configuration
 
-Three server nodes: wazuh-master-01 (master, 192.168.90.115), wazuh-worker-01
-(worker, 192.168.90.116), wazuh-worker-02 (worker, 192.168.90.117).
+Three server nodes: wazuh-master-01 (master, <MASTER_IP>), wazuh-worker-01
+(worker, <WORKER_01_IP>), wazuh-worker-02 (worker, <WORKER_02_IP>).
 Wazuh 4.14.5 stable version (install pinned as 4.14.5-1). Reference:
 https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/
 
@@ -223,7 +223,7 @@ chown -R root:root /etc/filebeat/certs
 Generated once on master and used identically on all three nodes:
 
 ```
-65eee392122e08d63ee68141da37398b
+<CLUSTER_KEY>
 ```
 
 To generate a new key: `openssl rand -hex 16`
@@ -244,11 +244,11 @@ cluster_block = """<cluster>
   <name>wazuh</name>
   <node_name>wazuh-master-01</node_name>
   <node_type>master</node_type>
-  <key>65eee392122e08d63ee68141da37398b</key>
+  <key><CLUSTER_KEY></key>
   <port>1516</port>
   <bind_addr>0.0.0.0</bind_addr>
   <nodes>
-    <node>192.168.90.115</node>
+    <node><MASTER_IP></node>
   </nodes>
   <hidden>no</hidden>
   <disabled>no</disabled>
@@ -282,13 +282,13 @@ grep update_check /var/ossec/etc/ossec.conf   # confirm it now reads no
 ```
 
 If the line is missing entirely, add it inside the first `<global>` block (see
-`configs/server/ossec-global-master.conf`). This only applies to the master; workers do not
+`configs/server/ossec_global_master.conf`). This only applies to the master; workers do not
 run the update task.
 
 ## 7.5 Enrollment password (master only)
 
 ```bash
-echo "WazuhEnroll2024!" > /var/ossec/etc/authd.pass
+echo "<ENROLLMENT_PASSWORD>" > /var/ossec/etc/authd.pass
 chmod 640 /var/ossec/etc/authd.pass
 chown root:wazuh /var/ossec/etc/authd.pass
 ```
@@ -332,7 +332,7 @@ apt install -y filebeat
 cat > /etc/filebeat/filebeat.yml <<'CONF'
 # Wazuh - Filebeat configuration file
 output.elasticsearch:
-  hosts: ["https://192.168.90.111:9200", "https://192.168.90.113:9200", "https://192.168.90.114:9200"]
+  hosts: ["https://<INDEXER_01_IP>:9200", "https://<INDEXER_02_IP>:9200", "https://<INDEXER_03_IP>:9200"]
   protocol: https
   username: "admin"
   password: "<INDEXER_ADMIN_PASSWORD>"
@@ -398,9 +398,9 @@ Expected output:
 
 ```
 NAME             TYPE    VERSION  ADDRESS
-wazuh-master-01  master  4.14.5   192.168.90.115
-wazuh-worker-01  worker  4.14.5   192.168.90.116
-wazuh-worker-02  worker  4.14.5   192.168.90.117
+wazuh-master-01  master  4.14.5   <MASTER_IP>
+wazuh-worker-01  worker  4.14.5   <WORKER_01_IP>
+wazuh-worker-02  worker  4.14.5   <WORKER_02_IP>
 ```
 
 ## 7.9 Validate the Wazuh API
@@ -410,7 +410,7 @@ before moving on:
 
 ```bash
 curl -sk -u wazuh-wui:wazuh-wui \
-  -X POST https://192.168.90.115:55000/security/user/authenticate | python3 -m json.tool
+  -X POST https://<MASTER_IP>:55000/security/user/authenticate | python3 -m json.tool
 ```
 
 A healthy response contains a `token`, which confirms the dashboard will be able to
@@ -420,7 +420,7 @@ reach the manager API on 55000.
 
 # 8. Wazuh Dashboard Deployment
 
-Node: wazuh-dashboard-01 (192.168.90.118), accessible at https://192.168.90.118.
+Node: wazuh-dashboard-01 (<DASHBOARD_IP>), accessible at https://<DASHBOARD_IP>.
 Wazuh 4.14.5 stable version (install pinned as 4.14.5-1). Reference:
 https://documentation.wazuh.com/current/user-manual/wazuh-dashboard/
 
@@ -468,9 +468,9 @@ cat > /etc/wazuh-dashboard/opensearch_dashboards.yml <<'CONF'
 server.host: 0.0.0.0
 server.port: 443
 opensearch.hosts:
-  - "https://192.168.90.111:9200"
-  - "https://192.168.90.113:9200"
-  - "https://192.168.90.114:9200"
+  - "https://<INDEXER_01_IP>:9200"
+  - "https://<INDEXER_02_IP>:9200"
+  - "https://<INDEXER_03_IP>:9200"
 opensearch.ssl.verificationMode: certificate
 opensearch.username: kibanaserver
 opensearch.password: "<KIBANASERVER_PASSWORD>"
@@ -492,7 +492,7 @@ mkdir -p /usr/share/wazuh-dashboard/data/wazuh/config
 cat > /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml <<'CONF'
 hosts:
   - default:
-      url: https://192.168.90.115
+      url: https://<MASTER_IP>
       port: 55000
       username: wazuh-wui
       password: "<WAZUH_WUI_PASSWORD>"
@@ -515,7 +515,7 @@ refresh the browser during initial load.
 
 ## 8.6 Access
 
-Browse to `https://192.168.90.118`. Accept the self signed certificate warning.
+Browse to `https://<DASHBOARD_IP>`. Accept the self signed certificate warning.
 Login with `admin` / `admin`.
 
 On first login the dashboard shows a health check page. A warning about
@@ -526,9 +526,9 @@ dashboard.
 ## 8.7 Validation
 
 After login confirm:
-- Top right shows API status indicator green (proves 55000 connection to master OK)
-- Wazuh app menu loads (Overview, Agents, etc.)
-- No red errors in the health check other than the alerts index pattern warning
+* Top right shows API status indicator green (proves 55000 connection to master OK)
+* Wazuh app menu loads (Overview, Agents, etc.)
+* No red errors in the health check other than the alerts index pattern warning
 
 ## 8.8 Notes on Wazuh 4.14.x
 
@@ -545,17 +545,17 @@ the browser loads many large JS bundles sequentially.
 
 # 9. Load Balancer Deployment
 
-Node: wazuh-lb-01 (192.168.90.112), FQDN wazuh-lb.lab.local. HAProxy in TCP mode
+Node: wazuh-lb-01 (<LB_IP>), FQDN wazuh-lb.lab.local. HAProxy in TCP mode
 balances agent enrollment and reporting across the cluster. Reference:
 https://documentation.wazuh.com/current/user-manual/wazuh-server-cluster/load-balancers.html
 
 ## 9.1 Design
 
-- Enrollment (1515/TCP) is forwarded only to the master, because the master handles
+* Enrollment (1515/TCP) is forwarded only to the master, because the master handles
   agent registration.
-- Reporting (1514/TCP) is balanced across both workers with health checks, because
+* Reporting (1514/TCP) is balanced across both workers with health checks, because
   workers carry the event load and provide failover.
-- Mode is TCP, since Wazuh agent traffic is not HTTP.
+* Mode is TCP, since Wazuh agent traffic is not HTTP.
 
 ## 9.2 HAProxy install
 
@@ -592,7 +592,7 @@ frontend wazuh_enrollment
 
 backend wazuh_enrollment_backend
     mode tcp
-    server wazuh-master-01 192.168.90.115:1515 check
+    server wazuh-master-01 <MASTER_IP>:1515 check
 
 # Agent reporting -> workers, round robin with health checks
 frontend wazuh_reporting
@@ -602,8 +602,8 @@ frontend wazuh_reporting
 backend wazuh_reporting_backend
     mode tcp
     balance roundrobin
-    server wazuh-worker-01 192.168.90.116:1514 check
-    server wazuh-worker-02 192.168.90.117:1514 check
+    server wazuh-worker-01 <WORKER_01_IP>:1514 check
+    server wazuh-worker-02 <WORKER_02_IP>:1514 check
 
 # Optional HAProxy stats UI
 frontend stats

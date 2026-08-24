@@ -1,9 +1,9 @@
 server.host: 0.0.0.0
 server.port: 443
 opensearch.hosts:
-  - "https://192.168.90.111:9200"
-  - "https://192.168.90.113:9200"
-  - "https://192.168.90.114:9200"
+  - "https://<INDEXER_01_IP>:9200"
+  - "https://<INDEXER_02_IP>:9200"
+  - "https://<INDEXER_03_IP>:9200"
 opensearch.ssl.verificationMode: certificate
 opensearch.username: kibanaserver
 opensearch.password: "<KIBANASERVER_PASSWORD>"

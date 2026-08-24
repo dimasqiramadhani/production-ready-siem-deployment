@@ -1,6 +1,6 @@
 hosts:
   - default:
-      url: https://192.168.90.115
+      url: https://<MASTER_IP>
       port: 55000
       username: wazuh-wui
       password: "<WAZUH_WUI_PASSWORD>"

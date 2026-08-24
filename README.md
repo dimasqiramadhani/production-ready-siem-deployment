@@ -1,8 +1,8 @@
-![Cover Image](screenshots/Cover%20Image.png)
+![Cover Image](screenshots/Cover_Image.png)
 
-# Production Ready SIEM Deployment
+# Production Wazuh SIEM Architecture and Infrastructure Automation
 
-> Wazuh multi node cluster lab (distributed architecture)
+> Wazuh multi node cluster, distributed architecture
 
 Wazuh 4.14.5 stable version distributed deployment on Ubuntu 22.04. All components verified working.
 
@@ -14,28 +14,52 @@ Wazuh 4.14.5 stable version distributed deployment on Ubuntu 22.04. All componen
 
 ### Core SIEM infrastructure
 
-| VM                      | IP             | FQDN                              | Role                  | Status   |
-|-------------------------|----------------|-----------------------------------|-----------------------|----------|
-| wazuh-indexer-01        | 192.168.90.111 | wazuh-indexer-01.lab.local        | Indexer node          | deployed |
-| wazuh-indexer-02        | 192.168.90.113 | wazuh-indexer-02.lab.local        | Indexer node          | deployed |
-| wazuh-indexer-03        | 192.168.90.114 | wazuh-indexer-03.lab.local        | Indexer node          | deployed |
-| wazuh-manager-master    | 192.168.90.115 | wazuh-manager-master.lab.local    | Server cluster master | deployed |
-| wazuh-manager-worker-01 | 192.168.90.116 | wazuh-manager-worker-01.lab.local | Server cluster worker | deployed |
-| wazuh-manager-worker-02 | 192.168.90.117 | wazuh-manager-worker-02.lab.local | Server cluster worker | deployed |
-| wazuh-dashboard         | 192.168.90.118 | wazuh-dashboard.lab.local         | Dashboard             | deployed |
-| wazuh-lb-01             | 192.168.90.112 | wazuh-lb.lab.local                | HAProxy load balancer | deployed |
+Two naming layers exist on the server nodes and both are real. The operating system
+hostname is what the shell prompt and the `manager.name` field in every alert show. The
+Wazuh cluster node name is what `cluster_control` reports, what the certificates are
+issued to, and what `configs/shared/hosts` resolves. They are not the same string on the
+three server nodes, so both are listed here.
+
+| VM (OS hostname)        | IP              | Wazuh node name  | FQDN in hosts file         | Role                  | Status   |
+|-------------------------|-----------------|------------------|----------------------------|-----------------------|----------|
+| wazuh-indexer-01        | <INDEXER_01_IP> | wazuh-indexer-01 | wazuh-indexer-01.lab.local | Indexer node          | deployed |
+| wazuh-indexer-02        | <INDEXER_02_IP> | wazuh-indexer-02 | wazuh-indexer-02.lab.local | Indexer node          | deployed |
+| wazuh-indexer-03        | <INDEXER_03_IP> | wazuh-indexer-03 | wazuh-indexer-03.lab.local | Indexer node          | deployed |
+| wazuh-manager-master    | <MASTER_IP>     | wazuh-master-01  | wazuh-master-01.lab.local  | Server cluster master | deployed |
+| wazuh-manager-worker-01 | <WORKER_01_IP>  | wazuh-worker-01  | wazuh-worker-01.lab.local  | Server cluster worker | deployed |
+| wazuh-manager-worker-02 | <WORKER_02_IP>  | wazuh-worker-02  | wazuh-worker-02.lab.local  | Server cluster worker | deployed |
+| wazuh-dashboard-01      | <DASHBOARD_IP>  | not applicable   | wazuh-dashboard.lab.local  | Dashboard             | deployed |
+| wazuh-lb-01             | <LB_IP>         | not applicable   | wazuh-lb.lab.local         | HAProxy load balancer | deployed |
+
+Three consequences follow from that split, and all three cost time if they are met by
+surprise. Alerts are attributed by `manager.name`, so searching for `wazuh-master-01`
+in the alert data returns nothing while `wazuh-manager-master` returns everything.
+Certificates are issued to the Wazuh node names, so the `hosts` file must resolve those
+names regardless of what the machines call themselves. And the dashboard certificate is
+issued to `wazuh-dashboard`, which is the FQDN rather than the short hostname
+`wazuh-dashboard-01`, so browsing to the short name raises a certificate warning.
+
+See `docs/EVALUATION.md`, findings 1 and 2.
 
 ### Monitored endpoints
 
-| VM             | IP             | Domain / Group      | Role                          | Status   |
-|----------------|----------------|---------------------|-------------------------------|----------|
-| windows-ad-dc  | 192.168.90.121 | lab.local           | Active Directory DC + DNS     | deployed |
-| win-agent-01   | 192.168.90.122 | lab.local / windows | Windows agent (domain member) | deployed |
-| win-agent-02   | 192.168.90.123 | lab.local / windows | Windows agent (domain member) | deployed |
-| linux-agent-01 | 192.168.90.119 | linux               | Ubuntu agent                  | deployed |
-| linux-agent-02 | 192.168.90.120 | linux               | Ubuntu agent                  | deployed |
+| VM (OS hostname) | IP                   | Wazuh agent name | ID  | Group(s)     | Role                                |
+|------------------|----------------------|------------------|-----|--------------|-------------------------------------|
+| ubuntu-agent-01  | <UBUNTU_AGENT_01_IP> | agent-linux-01   | 001 | linux        | Ubuntu agent                        |
+| ubuntu-agent-02  | <UBUNTU_AGENT_02_IP> | agent-linux-02   | 002 | linux        | Ubuntu agent                        |
+| win-agent-02     | <WIN_AGENT_02_IP>    | win-agent-02     | 003 | windows      | Windows agent, domain member        |
+| win-agent-01     | <WIN_AGENT_01_IP>    | win-agent-01     | 004 | windows, win | Windows agent, domain member        |
+| windows-ad-dc    | <AD_DC_IP>           | windows-ad-dc    | 005 | win          | Active Directory DC, DNS, and agent |
 
-> Network: everything lives on subnet 192.168.90.0/24. The Windows endpoints join an
+Five agents are enrolled, not four. The domain controller runs an agent as well, which
+is the correct choice for a DC but is easy to overlook when counting endpoints, and it
+means the Wazuh fleet includes the machine that pushes the Wazuh installer.
+
+The Ubuntu agents registered under names that differ from their hostnames, and a third
+group named `win` exists alongside `windows`. Both are described in
+`docs/EVALUATION.md`, findings 3 and 4.
+
+> Network: everything lives on subnet <SUBNET>. The Windows endpoints join an
 > Active Directory domain (lab.local) so the Wazuh agent can be pushed to all of them
 > at once through a Group Policy startup script, the same way it would be done across
 > a real fleet. The Ubuntu endpoints are handled with Ansible from the master.
@@ -50,7 +74,7 @@ Swap: 4 GB swapfile on all nodes, vm.swappiness=10.
 
 The lab is 13 VMs total: 8 server side nodes plus 5 monitored endpoints (1 AD domain
 controller, 2 Windows agents, 2 Ubuntu agents). Pick one profile from the planning
-doc (docs/01-planning.md):
+doc (docs/PLANNING.md):
 
 | Profile                     | Total RAM (server + endpoints) | Per indexer       | Use when                         |
 |-----------------------------|--------------------------------|-------------------|----------------------------------|
@@ -58,24 +82,24 @@ doc (docs/01-planning.md):
 | Profile A (minimum lab)     | ~48 to 64 GB comfortable       | 4 GB / 2 GB heap  | Laptop or single workstation     |
 | Profile B (production like) | 120 GB+                        | 16 GB / 8 GB heap | Throughput and shard testing     |
 
-Hard requirements regardless of profile: all nodes on subnet 192.168.90.0/24, FQDN
+Hard requirements regardless of profile: all nodes on subnet <SUBNET>, FQDN
 resolution between every node (DNS or /etc/hosts), NTP in sync, 4 GB swap on the
 server nodes, `vm.max_map_count=262144` on the indexer nodes, and SSD on the indexers
-for any non trivial volume. Full sizing tables in docs/01-planning.md.
+for any non trivial volume. Full sizing tables in docs/PLANNING.md.
 
 ## Deployment status
 
-- [x] Stage 0: OS baseline (hostname, /etc/hosts, NTP, swap, kernel tuning, firewall)
-- [x] Stage 1: Wazuh certificates generated and distributed
-- [x] Stage 2: Indexer cluster deployed and initialized (green, 3 nodes)
-- [x] Stage 3: Server cluster deployed (master + 2 workers, Filebeat OK)
-- [x] Stage 4: Dashboard deployed and accessible
-- [x] Stage 5: HAProxy load balancer (failover verified)
-- [x] Stage 6: Agent groups (windows, linux) and centralized config
-- [x] Stage 7A: Ubuntu agents deployed via Ansible (2 active, group linux)
-- [x] Stage 7B: Windows agents deployed via Active Directory GPO (2 active, group windows)
-- [x] Stage 8: Index management (ISM policies applied, snapshot repository configured)
-- [x] Stage 9: Final validation (all layers verified, end-to-end ingestion confirmed)
+* [x] Stage 0: OS baseline (hostname, /etc/hosts, NTP, swap, kernel tuning, firewall)
+* [x] Stage 1: Wazuh certificates generated and distributed
+* [x] Stage 2: Indexer cluster deployed and initialized (green, 3 nodes)
+* [x] Stage 3: Server cluster deployed (master + 2 workers, Filebeat OK)
+* [x] Stage 4: Dashboard deployed and accessible
+* [x] Stage 5: HAProxy load balancer (failover verified)
+* [x] Stage 6: Agent groups (windows, linux) and centralized config
+* [x] Stage 7A: Ubuntu agents deployed via Ansible (2 active, group linux)
+* [x] Stage 7B: Windows agents deployed via Active Directory GPO (2 active, group windows)
+* [x] Stage 8: Index management (ISM policies applied, snapshot repository configured)
+* [x] Stage 9: Final validation (all layers verified, end to end ingestion confirmed)
 
 ## Time estimate
 
@@ -98,46 +122,93 @@ minutes). Provisioning the 13 VMs and the OS install is not included.
 
 ## Verified working
 
-- Indexer cluster: green, 3 nodes, 0 unassigned shards, active_shards_percent 100.0
-- Server cluster: master + 2 workers via cluster_control
-- Filebeat: all 3 server nodes connected to all 3 indexers over TLSv1.3
-- Dashboard: accessible, API Online, no errors on Server APIs page
-- Load balancer: HAProxy, all backends UP, failover verified
-- Agent groups: windows and linux created, centralized agent.conf verified OK
-- Ubuntu agents: 2 enrolled and active, group linux, reporting through load balancer
-- Windows agents: 2 enrolled and active via AD GPO, group windows, joined lab.local
-- All 4 agents active: 001 agent-linux-01, 002 agent-linux-02, 003 win-agent-02, 004 win-agent-01
-- Wazuh API: authenticate returns token (200), dashboard pulls cluster and per node stats OK
-- ISM policies: wazuh-alerts-policy (90d) and wazuh-archives-policy (30d) applied
-- Snapshot repository: wazuh-snapshots configured, snapshot-test-02 SUCCESS
-- End-to-end ingestion: failed SSH logins on agent-linux-01 produced rule 5710 alerts
+* Indexer cluster: green, 3 nodes, 61 primary shards, 107 active, 0 unassigned,
+  active_shards_percent 100.0, cluster manager wazuh-indexer-02
+* Server cluster: master + 2 workers via cluster_control
+* Filebeat: all 3 server nodes connected to all 3 indexers over TLSv1.3
+* Dashboard: accessible, API Online, no errors on Server APIs page
+* Load balancer: HAProxy, all backends UP, failover verified
+* Agent groups: windows and linux created, centralized agent.conf verified OK
+* Ubuntu agents: 2 enrolled and active, group linux, reporting through load balancer,
+  distributed across both workers rather than landing on one
+* Windows agents: 2 enrolled and active via AD GPO, group windows, joined lab.local,
+  plus the domain controller itself enrolled as agent 005
+* All 5 agents active: 001 agent-linux-01, 002 agent-linux-02, 003 win-agent-02,
+  004 win-agent-01, 005 windows-ad-dc. Agent names, groups, and the enrolled domain
+  controller are covered in `docs/EVALUATION.md`, findings 3 and 4
+* Wazuh API: authenticate returns token (200), dashboard pulls cluster and per node stats OK
+* ISM policies: wazuh-alerts-policy (90d) and wazuh-archives-policy (30d) applied
+* Snapshot repository: wazuh-snapshots configured, snapshot-test-02 SUCCESS
+* End to end ingestion: failed SSH logins on agent-linux-01 produced rule 5710 alerts
   searchable in OpenSearch within seconds
-- Cluster key (identical on master and both workers): 65eee392122e08d63ee68141da37398b
-- Enrollment password: enabled on master (authd.pass), value WazuhEnroll2024!
+* Cluster key: identical on master and both workers, redacted here as `<CLUSTER_KEY>`
+* Enrollment password: enabled on master through `authd.pass`, redacted here as `<ENROLLMENT_PASSWORD>`
 
-## Credentials and placeholders
+## Placeholders
 
-Config files and commands use placeholders for passwords rather than hardcoded
-defaults. Replace each with your own value before deploying:
+Nothing in this repository carries a value that is specific to the deployment it came
+from. Addresses, secrets, and the domain are placeholders, and every one of them has to
+be replaced before a command or a config file will work.
 
-| Placeholder                | What it is                           | Where to set the real value                                            |
-|----------------------------|--------------------------------------|------------------------------------------------------------------------|
-| `<INDEXER_ADMIN_PASSWORD>` | indexer `admin` user password        | set during indexer install; used in filebeat.yml and all curl examples |
-| `<KIBANASERVER_PASSWORD>`  | dashboard service account password   | used in opensearch_dashboards.yml                                      |
-| `<WAZUH_WUI_PASSWORD>`     | Wazuh API dashboard account password | used in wazuh.yml                                                      |
+### Addresses
 
-The usernames themselves (`admin`, `kibanaserver`, `wazuh-wui`) are built-in Wazuh
-accounts and stay as is; only the passwords change. Change the shipped defaults with
-the Wazuh password tool and keep them out of any public repo:
+Set these once in `configs/shared/hosts` and the FQDNs carry the rest of the way. Every
+document uses the placeholder rather than an address.
+
+| Placeholder             | Node                    |
+|-------------------------|-------------------------|
+| `<INDEXER_01_IP>`       | wazuh-indexer-01        |
+| `<INDEXER_02_IP>`       | wazuh-indexer-02        |
+| `<INDEXER_03_IP>`       | wazuh-indexer-03        |
+| `<MASTER_IP>`           | wazuh-manager-master    |
+| `<WORKER_01_IP>`        | wazuh-manager-worker-01 |
+| `<WORKER_02_IP>`        | wazuh-manager-worker-02 |
+| `<DASHBOARD_IP>`        | wazuh-dashboard-01      |
+| `<LB_IP>`               | wazuh-lb-01             |
+| `<AD_DC_IP>`            | windows-ad-dc           |
+| `<WIN_AGENT_01_IP>`     | win-agent-01            |
+| `<WIN_AGENT_02_IP>`     | win-agent-02            |
+| `<UBUNTU_AGENT_01_IP>`  | ubuntu-agent-01         |
+| `<UBUNTU_AGENT_02_IP>`  | ubuntu-agent-02         |
+| `<SUBNET>`              | the flat subnet all thirteen nodes share |
+
+The eight server nodes and the five endpoints sit on one subnet in this build. Nothing in
+the design requires that, but the firewall matrix in `docs/PLANNING.md` assumes it, so
+splitting them across subnets means revisiting that matrix.
+
+### Secrets
+
+| Placeholder                | What it is                           | Where the real value lives                                          |
+|----------------------------|--------------------------------------|---------------------------------------------------------------------|
+| `<INDEXER_ADMIN_PASSWORD>` | indexer `admin` user password        | set during indexer install, used in filebeat.yml and every curl call |
+| `<KIBANASERVER_PASSWORD>`  | dashboard service account password   | `opensearch_dashboards.yml`                                          |
+| `<WAZUH_WUI_PASSWORD>`     | Wazuh API dashboard account password | `wazuh.yml`                                                          |
+| `<CLUSTER_KEY>`            | Wazuh server cluster shared key      | the cluster block of `ossec.conf` on all three server nodes          |
+| `<ENROLLMENT_PASSWORD>`    | agent enrollment password            | `/var/ossec/etc/authd.pass` on the master, and every agent installer |
+
+The three usernames (`admin`, `kibanaserver`, `wazuh-wui`) are built in Wazuh accounts
+and stay as they are. Only the passwords change:
 
 ```bash
-# On an indexer node, change indexer/dashboard internal user passwords
+# On an indexer node, change indexer and dashboard internal user passwords
 /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh \
   --change-all --admin-user admin --admin-password <CURRENT_ADMIN_PASSWORD>
 ```
 
-The enrollment password and cluster key shown above are lab values; generate fresh
-ones (`openssl rand -hex 16` for the cluster key) for any non lab deployment.
+The cluster key and the enrollment password deserve particular care, because they are
+what an attacker needs to join a rogue node to the cluster or to enroll a rogue agent.
+Generate fresh values rather than reusing anything published anywhere:
+`openssl rand -hex 16` for the cluster key, and any strong secret for enrollment.
+
+### Domain
+
+The Active Directory domain is `lab.local` with NetBIOS name `LAB`, and the node FQDNs
+follow it. It is an example domain rather than a real one, so substitute your own
+throughout `docs/AGENTS.md` and `configs/shared/hosts` if you are reproducing this.
+
+One caveat about the evidence: the screenshots in `screenshots/` were captured before
+this substitution and still show the addresses and the indexer password as they were on
+the day. See `docs/EVALUATION.md`, findings 7 and 12.
 
 ## Architecture diagrams
 
@@ -146,34 +217,35 @@ ones (`openssl rand -hex 16` for the cluster key) for any non lab deployment.
 ```mermaid
 flowchart TB
     subgraph EP["Endpoints"]
-        DC["windows-ad-dc<br/>192.168.90.121<br/>Active Directory DC"]
-        W1["win-agent-01<br/>192.168.90.122<br/>group: windows"]
-        W2["win-agent-02<br/>192.168.90.123<br/>group: windows"]
-        U1["ubuntu-agent-01<br/>192.168.90.119<br/>group: linux"]
-        U2["ubuntu-agent-02<br/>192.168.90.120<br/>group: linux"]
+        DC["windows-ad-dc<br/><AD_DC_IP><br/>Active Directory DC<br/>agent 005, group: win"]
+        W1["win-agent-01<br/><WIN_AGENT_01_IP><br/>groups: windows, win"]
+        W2["win-agent-02<br/><WIN_AGENT_02_IP><br/>group: windows"]
+        U1["ubuntu-agent-01<br/><UBUNTU_AGENT_01_IP><br/>group: linux"]
+        U2["ubuntu-agent-02<br/><UBUNTU_AGENT_02_IP><br/>group: linux"]
     end
 
-    LB["wazuh-lb-01<br/>192.168.90.112<br/>HAProxy TCP"]
+    LB["wazuh-lb-01<br/><LB_IP><br/>HAProxy TCP"]
 
     subgraph SRV["Wazuh server cluster"]
-        M["wazuh-master-01<br/>192.168.90.115<br/>master"]
-        K1["wazuh-worker-01<br/>192.168.90.116<br/>worker"]
-        K2["wazuh-worker-02<br/>192.168.90.117<br/>worker"]
+        M["wazuh-master-01<br/><MASTER_IP><br/>master<br/>host: wazuh-manager-master"]
+        K1["wazuh-worker-01<br/><WORKER_01_IP><br/>worker<br/>host: wazuh-manager-worker-01"]
+        K2["wazuh-worker-02<br/><WORKER_02_IP><br/>worker<br/>host: wazuh-manager-worker-02"]
     end
 
     subgraph IDX["Wazuh indexer cluster"]
-        I1["wazuh-indexer-01<br/>192.168.90.111"]
-        I2["wazuh-indexer-02<br/>192.168.90.113"]
-        I3["wazuh-indexer-03<br/>192.168.90.114"]
+        I1["wazuh-indexer-01<br/><INDEXER_01_IP>"]
+        I2["wazuh-indexer-02<br/><INDEXER_02_IP>"]
+        I3["wazuh-indexer-03<br/><INDEXER_03_IP>"]
     end
 
     SNAP["Snapshot repo<br/>/mnt/wazuh-snapshots<br/>ISM: alerts 90d, archives 30d"]
 
-    D["wazuh-dashboard-01<br/>192.168.90.118"]
+    D["wazuh-dashboard-01<br/><DASHBOARD_IP>"]
     A["Admin / User browser"]
 
     DC -.->|GPO pushes agent| W1
     DC -.->|GPO pushes agent| W2
+    DC -->|1514 event / 1515 enroll| LB
     W1 -->|1514 event / 1515 enroll| LB
     W2 -->|1514 event / 1515 enroll| LB
     U1 -->|1514 event / 1515 enroll| LB
@@ -249,33 +321,59 @@ through from a clean VM set to a fully validated SIEM.
 ## Project structure
 
 ```
-wazuh-multinode-lab/
-  README.md             This landing page (topology, status, diagrams)
-  DEPLOYMENT-LOG.md     Stage by stage record of the deployment
-  docs/
-    01-planning.md      Overview, sizing, network, checklist, deployment sequence
-    02-core-stack.md    Indexer cluster, server cluster, dashboard, load balancer
-    03-agents.md        Groups, agent.conf, rules and decoders, Windows GPO, Ansible
-    04-operations.md    Index and shard management, validation, hardening
-  configs/
-    indexer/            opensearch.yml per node, index templates, ISM policies
-    server/             cluster blocks, global config, Filebeat, custom rules/decoders
-    dashboard/          opensearch_dashboards.yml, wazuh.yml
-    agents/             agent.conf per group, Ansible playbook and inventory
-    lb/                 HAProxy config
-    shared/             /etc/hosts, unattended install config
-  scripts/              Copy ready scripts (validation, agent deploy)
+.
+├── README.md
+├── docs/
+│   ├── PLANNING.md           # overview, sizing, network, checklist, sequence
+│   ├── CORE_STACK.md         # indexer cluster, server cluster, dashboard, load balancer
+│   ├── AGENTS.md             # groups, agent.conf, rules and decoders, GPO, Ansible
+│   ├── OPERATIONS.md         # index and shard management, validation, hardening
+│   ├── DEPLOYMENT_LOG.md     # stage by stage record of the actual deployment
+│   └── EVALUATION.md         # consistency audit of this repository against the configs
+├── configs/
+│   ├── indexer/              # opensearch.yml per node, index templates, ISM policies
+│   ├── server/               # cluster blocks, global config, Filebeat, rules, decoders
+│   ├── dashboard/            # opensearch_dashboards.yml, wazuh.yml
+│   ├── agents/               # agent.conf per group, Ansible playbook and inventory
+│   ├── lb/                   # HAProxy config
+│   └── shared/               # /etc/hosts, certificate tool config
+├── scripts/                  # copy ready scripts for validation and agent deployment
+└── screenshots/
 ```
 
-The four docs map to deployment phases in order: read 01, then deploy following 02,
-03, and 04. Config files are grouped by the component they belong to, so each stage
-pulls from one subfolder. Section numbering (Stage 0 through Stage 9) is preserved
-across the docs so cross references stay intact.
+Read `docs/PLANNING.md` first, then deploy following `docs/CORE_STACK.md`,
+`docs/AGENTS.md`, and `docs/OPERATIONS.md` in that order. `docs/DEPLOYMENT_LOG.md`
+records what was actually run and what each stage returned, and `docs/EVALUATION.md`
+records where this repository and the deployed configuration disagree.
+
+File names carry no ordering prefix, so the reading order lives here rather than in the
+names. The stage numbering inside the documents, Stage 0 through Stage 9, is unchanged,
+because cross references between documents depend on it.
+
+Config files are grouped by the component they belong to, so each stage pulls from one
+subfolder.
+
+## Screenshots
+
+Captured from the running deployment, in `screenshots/`.
+
+| File                       | What it shows                                           |
+|----------------------------|---------------------------------------------------------|
+| `Nodes.png`                | indexer cluster node list, three nodes                  |
+| `Cluster.png`              | server cluster status, master and two workers           |
+| `Health_Check.png`         | dashboard health check against the Wazuh API            |
+| `Filebeat_Test_Output.png` | Filebeat output test from a server node to the indexers |
+| `Agent_List.png`           | all four agents active with their groups                |
+| `Home_Page.png`            | dashboard landing page                                  |
+| `Discover_Menu.png`        | alert search in Discover                                |
+| `IT_Hygiene.png`           | IT Hygiene module                                       |
+| `ISM_and_Snapshot.png`     | ISM policies applied and snapshot repository            |
+| `Cover_Image.png`          | cover image used at the top of this page                |
 
 ## Author
 
 Dimasqi Ramadhani, Security Engineer
 
-- [Portfolio](https://dimasqiramadhani.com)
-- [GitHub](https://github.com/dimasqiramadhani)
-- [Linkedin](https://linkedin.com/in/dimasqiramadhani)
+* [Portfolio](https://dimasqiramadhani.com)
+* [GitHub](https://github.com/dimasqiramadhani)
+* [LinkedIn](https://linkedin.com/in/dimasqiramadhani)

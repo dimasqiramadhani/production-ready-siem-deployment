@@ -1,22 +1,24 @@
+# /etc/hosts template. Replace every placeholder with the real address before use.
+# This is the single place addresses are set; the documents reference the FQDNs.
 127.0.0.1   localhost
 
 # Wazuh indexer cluster
-192.168.90.111 wazuh-indexer-01.lab.local wazuh-indexer-01
-192.168.90.113 wazuh-indexer-02.lab.local wazuh-indexer-02
-192.168.90.114 wazuh-indexer-03.lab.local wazuh-indexer-03
+<INDEXER_01_IP> wazuh-indexer-01.lab.local wazuh-indexer-01
+<INDEXER_02_IP> wazuh-indexer-02.lab.local wazuh-indexer-02
+<INDEXER_03_IP> wazuh-indexer-03.lab.local wazuh-indexer-03
 
 # Wazuh server cluster
-192.168.90.115 wazuh-master-01.lab.local wazuh-master-01
-192.168.90.116 wazuh-worker-01.lab.local wazuh-worker-01
-192.168.90.117 wazuh-worker-02.lab.local wazuh-worker-02
+<MASTER_IP> wazuh-master-01.lab.local wazuh-master-01
+<WORKER_01_IP> wazuh-worker-01.lab.local wazuh-worker-01
+<WORKER_02_IP> wazuh-worker-02.lab.local wazuh-worker-02
 
 # Dashboard and load balancer
-192.168.90.118 wazuh-dashboard.lab.local wazuh-dashboard-01
-192.168.90.112 wazuh-lb.lab.local wazuh-lb-01
+<DASHBOARD_IP> wazuh-dashboard.lab.local wazuh-dashboard-01
+<LB_IP> wazuh-lb.lab.local wazuh-lb-01
 
 # Endpoints
-192.168.90.121 windows-ad-dc.lab.local windows-ad-dc
-192.168.90.122 win-agent-01.lab.local win-agent-01
-192.168.90.123 win-agent-02.lab.local win-agent-02
-192.168.90.119 ubuntu-agent-01.lab.local ubuntu-agent-01
-192.168.90.120 ubuntu-agent-02.lab.local ubuntu-agent-02
+<AD_DC_IP> windows-ad-dc.lab.local windows-ad-dc
+<WIN_AGENT_01_IP> win-agent-01.lab.local win-agent-01
+<WIN_AGENT_02_IP> win-agent-02.lab.local win-agent-02
+<UBUNTU_AGENT_01_IP> ubuntu-agent-01.lab.local ubuntu-agent-01
+<UBUNTU_AGENT_02_IP> ubuntu-agent-02.lab.local ubuntu-agent-02

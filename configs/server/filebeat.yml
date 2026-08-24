@@ -3,7 +3,7 @@
 # Replace <INDEXER_ADMIN_PASSWORD> with the admin password set during indexer install.
 # The username stays "admin" (the built-in indexer admin user); only the password changes.
 output.elasticsearch:
-  hosts: ["https://192.168.90.111:9200", "https://192.168.90.113:9200", "https://192.168.90.114:9200"]
+  hosts: ["https://<INDEXER_01_IP>:9200", "https://<INDEXER_02_IP>:9200", "https://<INDEXER_03_IP>:9200"]
   protocol: https
   username: "admin"
   password: "<INDEXER_ADMIN_PASSWORD>"

@@ -2,21 +2,21 @@
 nodes:
   indexer:
     - name: wazuh-indexer-01
-      ip: 192.168.90.111
+      ip: <INDEXER_01_IP>
     - name: wazuh-indexer-02
-      ip: 192.168.90.113
+      ip: <INDEXER_02_IP>
     - name: wazuh-indexer-03
-      ip: 192.168.90.114
+      ip: <INDEXER_03_IP>
   server:
     - name: wazuh-master-01
-      ip: 192.168.90.115
+      ip: <MASTER_IP>
       node_type: master
     - name: wazuh-worker-01
-      ip: 192.168.90.116
+      ip: <WORKER_01_IP>
       node_type: worker
     - name: wazuh-worker-02
-      ip: 192.168.90.117
+      ip: <WORKER_02_IP>
       node_type: worker
   dashboard:
     - name: wazuh-dashboard
-      ip: 192.168.90.118
+      ip: <DASHBOARD_IP>
