@@ -1,5 +1,3 @@
-![Cover Image](screenshots/Cover_Image.png)
-
 # Production Wazuh SIEM Architecture and Infrastructure Automation
 
 > Wazuh multi node cluster, distributed architecture
